@@ -11,6 +11,8 @@ import json
 import subprocess
 import requests
 
+logger = logging.getLogger(__name__)
+
 # Импорты utility-функций
 from core.utils import (
     load_bypass_list,
@@ -77,9 +79,6 @@ def login():
     On success: Set session['authenticated'] = True, redirect to /
     On failure: Display flash message, redirect to /login
     """
-import logging
-logger = logging.getLogger(__name__)
-
     # Если уже авторизован - редирект на главную
     if session.get('authenticated'):
         return redirect(url_for('main.index'))
