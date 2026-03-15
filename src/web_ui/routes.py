@@ -867,3 +867,55 @@ def register_routes(app):
     # Blueprint already registered in create_app()
     # This function exists for future extensibility
     pass
+
+
+@bp.route('/logs')
+@login_required
+def view_logs():
+    """
+    View application logs.
+    
+    Requires authentication.
+    """
+    log_file = os.environ.get('LOG_FILE', '/opt/var/log/web_ui.log')
+    lines = []
+    error_lines = []
+    
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                all_lines = f.readlines()
+                lines = all_lines[-100:]  # Last 100 lines
+                error_lines = [l for l in all_lines if 'ERROR' in l or 'CRITICAL' in l][-20:]
+    except Exception as e:
+        logger.error(f"view_logs Exception: {e}")
+        flash(f'❌ Ошибка чтения логов: {str(e)}', 'danger')
+    
+    return render_template('logs.html', 
+                          log_lines=lines, 
+                          error_lines=error_lines,
+                          log_file=log_file)
+
+
+@bp.route('/logs/clear', methods=['POST'])
+@login_required
+def clear_logs():
+    """
+    Clear application logs.
+    
+    Requires authentication.
+    """
+    log_file = os.environ.get('LOG_FILE', '/opt/var/log/web_ui.log')
+    
+    try:
+        if os.path.exists(log_file):
+            with open(log_file, 'w') as f:
+                f.write('')
+            flash('✅ Логи очищены', 'success')
+        else:
+            flash('⚠️ Файл логов не найден', 'warning')
+    except Exception as e:
+        flash(f'❌ Ошибка: {str(e)}', 'danger')
+        logger.error(f"clear_logs Exception: {e}")
+    
+    return redirect(url_for('main.view_logs'))
