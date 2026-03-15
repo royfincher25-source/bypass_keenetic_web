@@ -77,7 +77,8 @@ def login():
     On success: Set session['authenticated'] = True, redirect to /
     On failure: Display flash message, redirect to /login
     """
-    import logging
+import logging
+logger = logging.getLogger(__name__)
 
     # Если уже авторизован - редирект на главную
     if session.get('authenticated'):
@@ -260,8 +261,10 @@ def key_config(service: str):
         
         except ValueError as e:
             flash(f'❌ Ошибка в ключе: {str(e)}', 'danger')
+            logger.error(f"save_key ValueError: {e}")
         except Exception as e:
             flash(f'❌ Ошибка: {str(e)}', 'danger')
+            logger.error(f"save_key Exception: {e}")
     
     # GET запрос - показываем форму
     return render_template('key_generic.html', service=service, service_name=svc['name'])
@@ -289,7 +292,7 @@ def bypass():
                 if f.endswith('.txt')
             ]
         except Exception as e:
-            logging.error(f"Error listing bypass files: {e}")
+            logger.error(f"Error listing bypass files: {e}")
     
     return render_template('bypass.html', available_files=available_files)
 
@@ -512,6 +515,8 @@ def stats():
                         })
                 except Exception:
                     pass
+                except Exception as e:
+                    logger.error(f"stats Exception: {e}")
     
     # Общая статистика
     active_services = sum(1 for s in services.values() if s['status'] == '✅ Активен')
@@ -573,6 +578,7 @@ def service_restart_router():
         flash('✅ Команда на перезагрузку отправлена', 'success')
     except Exception as e:
         flash(f'❌ Ошибка: {str(e)}', 'danger')
+        logger.error(f"service_reboot Exception: {e}")
     
     return redirect(url_for('main.service'))
 
@@ -606,6 +612,7 @@ def service_restart_all():
                 results.append(f"⚠️ {name} (скрипт не найден)")
         except Exception as e:
             results.append(f"❌ {name}: {str(e)}")
+            logger.error(f"service_restart_all Exception for {name}: {e}")
     
     flash('Перезапуск сервисов: ' + ', '.join(results), 'success')
     return redirect(url_for('main.service'))
@@ -631,6 +638,7 @@ def service_dns_override(action):
         flash('✅ DNS Override ' + ('включен' if enable else 'выключен') + '. Роутер будет перезагружен.', 'warning')
     except Exception as e:
         flash(f'❌ Ошибка: {str(e)}', 'danger')
+        logger.error(f"service_dns_override Exception: {e}")
     
     return redirect(url_for('main.service'))
 
@@ -678,6 +686,7 @@ def service_updates():
                 need_update = False
         except ValueError:
             pass
+            logger.warning(f"get_updates_version: version parse error - local={local_version}, remote={remote_version}")
     
     return render_template('updates.html', 
                           local_version=local_version,
@@ -711,6 +720,7 @@ def service_updates_run():
         flash('✅ Обновление завершено!', 'success')
     except Exception as e:
         flash(f'❌ Ошибка обновления: {str(e)}', 'danger')
+        logger.error(f"service_updates Exception: {e}")
     
     return redirect(url_for('main.service_updates'))
 
@@ -743,6 +753,7 @@ def service_install():
             
         except Exception as e:
             flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
+            logger.error(f"service_install download Exception: {e}")
             return redirect(url_for('main.service_install'))
         
         try:
@@ -770,8 +781,10 @@ def service_install():
                 
         except subprocess.TimeoutExpired:
             flash('❌ Превышен таймаут (10 минут)', 'danger')
+            logger.error("service_install: timeout exceeded (10 minutes)")
         except Exception as e:
             flash(f'❌ Ошибка: {str(e)}', 'danger')
+            logger.error(f"service_install Exception: {e}")
     
     return render_template('install.html')
 
@@ -802,6 +815,7 @@ def service_remove():
                 os.chmod(script_path, 0o755)
             except Exception as e:
                 flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
+                logger.error(f"service_remove download Exception: {e}")
                 return redirect(url_for('main.service_remove'))
         
         try:
@@ -827,8 +841,10 @@ def service_remove():
                 
         except subprocess.TimeoutExpired:
             flash('❌ Превышен таймаут (5 минут)', 'danger')
+            logger.error("service_remove: timeout exceeded (5 minutes)")
         except Exception as e:
             flash(f'❌ Ошибка: {str(e)}', 'danger')
+            logger.error(f"service_remove Exception: {e}")
     
     return render_template('install.html')
 
