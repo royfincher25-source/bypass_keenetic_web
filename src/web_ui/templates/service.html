@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Сервис — Bypass Keenetic{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear"></i> Сервисное меню</h2>
+    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Назад
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Перезапуск Unblock-сервиса -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-shield-check"></i> Перезапуск Unblock</h5>
+                <p class="text-muted small">Перезапуск сервиса обхода блокировок</p>
+                <form method="POST" action="{{ url_for('main.service_restart_unblock') }}">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Перезапустить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Перезапуск роутера -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-router"></i> Перезапуск роутера</h5>
+                <p class="text-muted small">Перезагрузка всего роутера (~2 минуты)</p>
+                <form method="POST" action="{{ url_for('main.service_restart_router') }}">
+                    <button type="submit" class="btn btn-warning btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Перезапустить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DNS Override -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-globe"></i> DNS Override</h5>
+                <p class="text-muted small">Перенаправление DNS запросов через роутер</p>
+                <form method="POST" action="{{ url_for('main.service_dns_override', action='on') }}" class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm">ВКЛ</button>
+                </form>
+                <form method="POST" action="{{ url_for('main.service_dns_override', action='off') }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">ВЫКЛ</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Перезапуск всех сервисов -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-arrow-repeat"></i> Перезапуск всех сервисов</h5>
+                <p class="text-muted small">VLESS, Shadowsocks, Trojan, Tor</p>
+                <form method="POST" action="{{ url_for('main.service_restart_all') }}">
+                    <button type="submit" class="btn btn-info btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Перезапустить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Бэкап -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-hdd"></i> Бэкап</h5>
+                <p class="text-muted small">Создание резервной копии конфигов</p>
+                <form method="POST" action="{{ url_for('main.service_backup') }}">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-download"></i> Создать
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Обновления -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-arrow-repeat"></i> Обновления</h5>
+                <p class="text-muted small">Проверка и установка обновлений</p>
+                <a href="{{ url_for('main.service_updates') }}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-search"></i> Проверить
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
