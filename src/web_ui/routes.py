@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, sessio
 import os
 import logging
 import json
+import requests
 
 # Импорты utility-функций
 from core.utils import (
@@ -722,9 +723,24 @@ def service_install():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
+        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
         
-        if not os.path.exists(script_path):
-            flash('❌ Скрипт установки не найден. Сначала загрузите скрипт.', 'danger')
+        try:
+            # Загружаем скрипт с GitHub
+            flash('⏳ Загрузка скрипта установки...', 'info')
+            response = requests.get(script_url, timeout=30)
+            if response.status_code != 200:
+                flash(f'❌ Ошибка загрузки: {response.status_code}', 'danger')
+                return redirect(url_for('main.service_install'))
+            
+            os.makedirs(os.path.dirname(script_path), exist_ok=True)
+            with open(script_path, 'w') as f:
+                f.write(response.text)
+            os.chmod(script_path, 0o755)
+            flash('✅ Скрипт загружен', 'success')
+            
+        except Exception as e:
+            flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
             return redirect(url_for('main.service_install'))
         
         try:
@@ -768,10 +784,23 @@ def service_remove():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
+        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
         
         if not os.path.exists(script_path):
-            flash('❌ Скрипт удаления не найден.', 'danger')
-            return redirect(url_for('main.service_remove'))
+            try:
+                flash('⏳ Загрузка скрипта...', 'info')
+                response = requests.get(script_url, timeout=30)
+                if response.status_code != 200:
+                    flash(f'❌ Ошибка загрузки: {response.status_code}', 'danger')
+                    return redirect(url_for('main.service_remove'))
+                
+                os.makedirs(os.path.dirname(script_path), exist_ok=True)
+                with open(script_path, 'w') as f:
+                    f.write(response.text)
+                os.chmod(script_path, 0o755)
+            except Exception as e:
+                flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
+                return redirect(url_for('main.service_remove'))
         
         try:
             flash('⏳ Удаление началось...', 'info')
