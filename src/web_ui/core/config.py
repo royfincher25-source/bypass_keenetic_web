@@ -26,30 +26,30 @@ try:
 except ImportError:
     # Fallback: простой парсер
     def load_env_file(filepath):
-            import re
-            env = {}
-            if os.path.exists(filepath):
-                with open(filepath, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith('#'):
-                            match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$', line)
-                            if match:
-                                key, value = match.group(1), match.group(2)
-                                if (value.startswith('"') and value.endswith('"')) or \
-                                   (value.startswith("'") and value.endswith("'")):
-                                    value = value[1:-1]
-                                env[key] = value
-            return env
+        import re
+        env = {}
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$', line)
+                        if match:
+                            key, value = match.group(1), match.group(2)
+                            if (value.startswith('"') and value.endswith('"')) or \
+                               (value.startswith("'") and value.endswith("'")):
+                                value = value[1:-1]
+                            env[key] = value
+        return env
 
-        def get_env(key, default=None):
-            return os.environ.get(key, _env_cache.get(key, default))
+    def get_env(key, default=None):
+        return os.environ.get(key, default)
 
-        def get_env_int(key, default=0):
-            try:
-                return int(get_env(key, default))
-            except (ValueError, TypeError):
-                return default
+    def get_env_int(key, default=0):
+        try:
+            return int(get_env(key, default))
+        except (ValueError, TypeError):
+            return default
 
 
 # =============================================================================
