@@ -10,16 +10,26 @@
     </a>
 </div>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <div class="row g-4">
     <div class="col-12 col-md-6">
         <div class="card shadow-sm border-success">
             <div class="card-body text-center">
                 <i class="bi bi-download display-4 text-success"></i>
                 <h5 class="card-title mt-3">Установка</h5>
-                <p class="card-text text-muted">Установить компоненты</p>
-                <button class="btn btn-success btn-lg">
-                    <i class="bi bi-play"></i> Установить
-                </button>
+                <p class="card-text text-muted">Установить компоненты bypass_keenetic</p>
+                <form method="POST" action="{{ url_for('main.service_install') }}">
+                    <button type="submit" class="btn btn-success btn-lg" onclick="return confirm('Начать установку?')">
+                        <i class="bi bi-play"></i> Установить
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -29,10 +39,12 @@
             <div class="card-body text-center">
                 <i class="bi bi-trash display-4 text-danger"></i>
                 <h5 class="card-title mt-3">Удаление</h5>
-                <p class="card-text text-muted">Удалить компоненты</p>
-                <button class="btn btn-danger btn-lg">
-                    <i class="bi bi-x-lg"></i> Удалить
-                </button>
+                <p class="card-text text-muted">Удалить компоненты bypass_keenetic</p>
+                <form method="POST" action="{{ url_for('main.service_remove') }}">
+                    <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Вы уверены? Удаление нельзя отменить!')">
+                        <i class="bi bi-x-lg"></i> Удалить
+                    </button>
+                </form>
             </div>
         </div>
     </div>

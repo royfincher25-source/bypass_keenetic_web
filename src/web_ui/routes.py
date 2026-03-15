@@ -712,6 +712,96 @@ def service_updates_run():
     return redirect(url_for('main.service_updates'))
 
 
+@bp.route('/install', methods=['GET', 'POST'])
+@login_required
+def service_install():
+    """
+    Run installation script.
+
+    Requires authentication.
+    """
+    if request.method == 'POST':
+        script_path = '/opt/root/script.sh'
+        
+        if not os.path.exists(script_path):
+            flash('❌ Скрипт установки не найден. Сначала загрузите скрипт.', 'danger')
+            return redirect(url_for('main.service_install'))
+        
+        try:
+            flash('⏳ Установка началась...', 'info')
+            
+            process = subprocess.Popen(
+                [script_path, '-install'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            output_lines = []
+            for line in process.stdout:
+                output_lines.append(line.strip())
+                flash(f'⏳ {line.strip()}', 'info')
+            
+            process.wait(timeout=600)
+            
+            if process.returncode == 0:
+                flash('✅ Установка завершена', 'success')
+            else:
+                flash('❌ Ошибка установки', 'danger')
+                
+        except subprocess.TimeoutExpired:
+            flash('❌ Превышен таймаут (10 минут)', 'danger')
+        except Exception as e:
+            flash(f'❌ Ошибка: {str(e)}', 'danger')
+    
+    return render_template('install.html')
+
+
+@bp.route('/remove', methods=['GET', 'POST'])
+@login_required
+def service_remove():
+    """
+    Run removal script.
+
+    Requires authentication.
+    """
+    if request.method == 'POST':
+        script_path = '/opt/root/script.sh'
+        
+        if not os.path.exists(script_path):
+            flash('❌ Скрипт удаления не найден.', 'danger')
+            return redirect(url_for('main.service_remove'))
+        
+        try:
+            flash('⏳ Удаление началось...', 'info')
+            
+            process = subprocess.Popen(
+                [script_path, '-remove'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            for line in process.stdout:
+                flash(f'⏳ {line.strip()}', 'info')
+            
+            process.wait(timeout=300)
+            
+            if process.returncode == 0:
+                flash('✅ Удаление завершено', 'success')
+            else:
+                flash('❌ Ошибка удаления', 'danger')
+                
+        except subprocess.TimeoutExpired:
+            flash('❌ Превышен таймаут (5 минут)', 'danger')
+        except Exception as e:
+            flash(f'❌ Ошибка: {str(e)}', 'danger')
+    
+    return render_template('install.html')
+
+
 # =============================================================================
 # ROUTE REGISTRATION
 # =============================================================================
