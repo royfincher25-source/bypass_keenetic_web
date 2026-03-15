@@ -12,6 +12,7 @@
         </div>
         <div class="col-auto">
             <form method="POST" action="{{ url_for('main.clear_logs') }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Очистить все логи?')">
                     🗑️ Очистить логи
                 </button>

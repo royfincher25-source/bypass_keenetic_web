@@ -13,6 +13,7 @@
 </div>
 
 <form method="POST" action="{{ url_for('main.remove_from_bypass', filename=filename) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="card-title">Записи для удаления</h5>

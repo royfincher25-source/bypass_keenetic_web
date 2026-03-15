@@ -4,6 +4,7 @@ Bypass Keenetic Web Interface - Routes
 Routes for the web interface with session-based authentication.
 """
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, current_app
+from functools import wraps
 import os
 import sys
 import logging
@@ -53,6 +54,38 @@ def login_required(f):
     return decorated_function
 
 
+def get_csrf_token():
+    """Generate or get CSRF token for the session."""
+    import secrets
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
+
+
+def csrf_required(f):
+    """Decorator to require CSRF token on POST requests."""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.method == 'POST':
+            token = session.get('csrf_token')
+            form_token = request.form.get('csrf_token')
+            if not token or not form_token or token != form_token:
+                flash('Ошибка безопасности: неверный токен', 'danger')
+                logger.warning("CSRF token validation failed")
+                return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+
+@bp.context_processor
+def inject_csrf_token():
+    """Inject CSRF token into all templates."""
+    return dict(csrf_token=get_csrf_token())
+
+
 # =============================================================================
 # ROUTES
 # =============================================================================
@@ -83,27 +116,33 @@ def login():
     if session.get('authenticated'):
         return redirect(url_for('main.index'))
 
+    # Generate CSRF token for GET requests
+    if request.method == 'GET':
+        get_csrf_token()
+
     if request.method == 'POST':
+        # CSRF check for login
+        token = session.get('csrf_token')
+        form_token = request.form.get('csrf_token')
+        if not token or not form_token or token != form_token:
+            flash('Ошибка безопасности: неверный токен', 'danger')
+            logger.warning("CSRF token validation failed on login")
+            return redirect(url_for('main.login'))
+        
         password = request.form.get('password', '')
         web_password = current_app.config.get('WEB_PASSWORD', 'changeme')
 
-        # Отладочная информация (смотреть в логах)
-        logging.error(f"=== LOGIN DEBUG ===")
-        logging.error(f"password from form: '{password}' (len={len(password)})")
-        logging.error(f"web_password from config: '{web_password}' (len={len(web_password)})")
-        logging.error(f"password == web_password: {password == web_password}")
-        logging.error(f"config keys: {list(current_app.config.keys())}")
-
-        # Строгое сравнение
-        if password and web_password and password == web_password:
+        # Безопасное сравнение паролей (защита от timing attacks)
+        import secrets
+        if password and web_password and secrets.compare_digest(password, web_password):
             # Успешная авторизация
             session.permanent = True
             session['authenticated'] = True
-            logging.error(f"=== LOGIN SUCCESS ===")
+            logger.info("User logged in successfully")
             return redirect(url_for('main.index'))
         else:
             # Неверный пароль
-            logging.error(f"=== LOGIN FAIL ===")
+            logger.warning("Failed login attempt")
             flash('Неверный пароль', 'danger')
             return redirect(url_for('main.login'))
 
@@ -182,6 +221,7 @@ def keys():
 
 @bp.route('/keys/<service>', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def key_config(service: str):
     """
     Handle key configuration for a service.
@@ -329,6 +369,7 @@ def view_bypass(filename: str):
 
 @bp.route('/bypass/<filename>/add', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def add_to_bypass(filename: str):
     """
     Add entries to a bypass list file.
@@ -391,6 +432,7 @@ def add_to_bypass(filename: str):
 
 @bp.route('/bypass/<filename>/remove', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def remove_from_bypass(filename: str):
     """
     Remove entries from a bypass list file.
@@ -512,10 +554,8 @@ def stats():
                             'count': count,
                             'path': filepath,
                         })
-                except Exception:
-                    pass
                 except Exception as e:
-                    logger.error(f"stats Exception: {e}")
+                    logger.error(f"stats Exception reading {filename}: {e}")
     
     # Общая статистика
     active_services = sum(1 for s in services.values() if s['status'] == '✅ Активен')
@@ -547,6 +587,7 @@ def service():
 
 @bp.route('/service/restart-unblock', methods=['POST'])
 @login_required
+@csrf_required
 def service_restart_unblock():
     """
     Restart the unblock service.
@@ -566,6 +607,7 @@ def service_restart_unblock():
 
 @bp.route('/service/restart-router', methods=['POST'])
 @login_required
+@csrf_required
 def service_restart_router():
     """
     Restart the router.
@@ -584,6 +626,7 @@ def service_restart_router():
 
 @bp.route('/service/restart-all', methods=['POST'])
 @login_required
+@csrf_required
 def service_restart_all():
     """
     Restart all VPN services.
@@ -619,6 +662,7 @@ def service_restart_all():
 
 @bp.route('/service/dns-override/<action>', methods=['POST'])
 @login_required
+@csrf_required
 def service_dns_override(action):
     """
     Enable or disable DNS Override.
@@ -644,6 +688,7 @@ def service_dns_override(action):
 
 @bp.route('/service/backup', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def service_backup():
     """
     Create and download backup.
@@ -695,6 +740,7 @@ def service_updates():
 
 @bp.route('/service/updates/run', methods=['POST'])
 @login_required
+@csrf_required
 def service_updates_run():
     """
     Run update process.
@@ -726,6 +772,7 @@ def service_updates_run():
 
 @bp.route('/install', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def service_install():
     """
     Run installation script.
@@ -790,6 +837,7 @@ def service_install():
 
 @bp.route('/remove', methods=['GET', 'POST'])
 @login_required
+@csrf_required
 def service_remove():
     """
     Run removal script.
@@ -898,6 +946,7 @@ def view_logs():
 
 @bp.route('/logs/clear', methods=['POST'])
 @login_required
+@csrf_required
 def clear_logs():
     """
     Clear application logs.

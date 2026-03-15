@@ -26,6 +26,7 @@
                 <h5 class="card-title mt-3">Установка</h5>
                 <p class="card-text text-muted">Установить компоненты bypass_keenetic</p>
                 <form method="POST" action="{{ url_for('main.service_install') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-success btn-lg" onclick="return confirm('Начать установку?')">
                         <i class="bi bi-play"></i> Установить
                     </button>
@@ -41,6 +42,7 @@
                 <h5 class="card-title mt-3">Удаление</h5>
                 <p class="card-text text-muted">Удалить компоненты bypass_keenetic</p>
                 <form method="POST" action="{{ url_for('main.service_remove') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Вы уверены? Удаление нельзя отменить!')">
                         <i class="bi bi-x-lg"></i> Удалить
                     </button>

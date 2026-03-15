@@ -6,11 +6,28 @@ Flask application for Keenetic router bypass management.
 import os
 import sys
 import secrets
-from flask import Flask, session
+from functools import wraps
+from flask import Flask, session, request, abort
 from datetime import timedelta
 
 from core.config import WebConfig
 
+
+def csrf_token(f):
+    """Decorator to require CSRF token on POST requests."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.method == 'POST':
+            token = session.get('csrf_token')
+            form_token = request.form.get('csrf_token')
+            if not token or not form_token or token != form_token:
+                abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+# Make CSRF decorator available for routes
+app = None
 
 def create_app(config_class=None):
     """
@@ -23,6 +40,7 @@ def create_app(config_class=None):
     Returns:
         Configured Flask application instance
     """
+    global app
     app = Flask(__name__)
     
     # Генерация случайного SECRET_KEY если не задан в окружении
