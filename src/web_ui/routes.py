@@ -158,13 +158,13 @@ def keys():
         'trojan': {
             'name': 'Trojan',
             'config': '/opt/etc/trojan.json',
-            'init': '/opt/etc/init.d/S23trojan',
+            'init': '/opt/etc/init.d/S22trojan',
             'status': '❓',
         },
         'tor': {
             'name': 'Tor',
             'config': '/opt/etc/tor/torrc',
-            'init': '/opt/etc/init.d/S25tor',
+            'init': '/opt/etc/init.d/S35tor',
             'status': '❓',
         },
     }
@@ -473,12 +473,12 @@ def stats():
         },
         'trojan': {
             'name': 'Trojan',
-            'init': '/opt/etc/init.d/S23trojan',
+            'init': '/opt/etc/init.d/S22trojan',
             'config': '/opt/etc/trojan.json',
         },
         'tor': {
             'name': 'Tor',
-            'init': '/opt/etc/init.d/S25tor',
+            'init': '/opt/etc/init.d/S35tor',
             'config': '/opt/etc/tor/torrc',
         },
     }
