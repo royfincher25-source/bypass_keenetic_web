@@ -141,7 +141,9 @@ class WebConfig:
             if not os.path.exists(self._env_file):
                 self._env_file = str(WEB_ROOT / '.env')
         
-        # Отладка: логируем путь
+        # Загружаем .env файл
+        file_config = load_env_file(self._env_file)
+        
         self._cache = {
             'WEB_HOST': os.environ.get('WEB_HOST', file_config.get('WEB_HOST', DEFAULT_WEB_HOST)),
             'WEB_PORT': os.environ.get('WEB_PORT', file_config.get('WEB_PORT', str(DEFAULT_WEB_PORT))),
