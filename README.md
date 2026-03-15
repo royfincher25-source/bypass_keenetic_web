@@ -182,4 +182,4 @@ pytest tests/web/ -v
 
 ## Поддержка
 
-Вопросы и предложения: https://github.com/royfincher25-source/bypass_keenetic/issues
+Вопросы и предложения: https://github.com/royfincher25-source/bypass_keenetic_web/issues

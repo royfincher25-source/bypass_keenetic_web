@@ -808,7 +808,7 @@ def get_remote_version():
     """Получить удалённую версию с GitHub"""
     import requests
     try:
-        url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/version.md'
+        url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/version.md'
         response = requests.get(url, timeout=10)
         return response.text.strip()
     except Exception as e:

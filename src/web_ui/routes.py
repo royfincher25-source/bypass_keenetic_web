@@ -694,7 +694,7 @@ def service_updates_run():
     import requests
     
     try:
-        bot_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3'
+        bot_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/src/bot3'
         files = ['bot_config.py', 'handlers.py', 'menu.py', 'utils.py', 'main.py']
         
         for filename in files:
@@ -723,7 +723,7 @@ def service_install():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
-        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
+        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/src/bot3/script.sh'
         
         try:
             # Загружаем скрипт с GitHub
@@ -784,7 +784,7 @@ def service_remove():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
-        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
+        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/src/bot3/script.sh'
         
         if not os.path.exists(script_path):
             try:
