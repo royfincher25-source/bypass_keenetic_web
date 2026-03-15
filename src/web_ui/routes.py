@@ -713,6 +713,76 @@ def service_updates_run():
     return redirect(url_for('main.service_updates'))
 
 
+def install_web_ui():
+    """
+    Install web_ui files from GitHub.
+    
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    web_ui_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/web_ui'
+    web_ui_dir = '/opt/etc/web_ui'
+    
+    files = [
+        'app.py', 'routes.py', 'env_parser.py', 'requirements.txt', 
+        'version.md', '.env.example', '__init__.py'
+    ]
+    
+    try:
+        os.makedirs(web_ui_dir, exist_ok=True)
+        os.makedirs(f'{web_ui_dir}/core', exist_ok=True)
+        os.makedirs(f'{web_ui_dir}/templates', exist_ok=True)
+        os.makedirs(f'{web_ui_dir}/static', exist_ok=True)
+        
+        # Установка основных файлов
+        for filename in files:
+            url = f'{web_ui_url}/{filename}'
+            response = requests.get(url, timeout=30)
+            if response.status_code == 200:
+                with open(f'{web_ui_dir}/{filename}', 'w') as f:
+                    f.write(response.text)
+        
+        # Установка core модулей
+        core_files = ['config.py', 'utils.py', 'services.py', '__init__.py']
+        for filename in core_files:
+            url = f'{web_ui_url}/core/{filename}'
+            response = requests.get(url, timeout=30)
+            if response.status_code == 200:
+                with open(f'{web_ui_dir}/core/{filename}', 'w') as f:
+                    f.write(response.text)
+        
+        # Установка шаблонов
+        templates = ['base.html', 'index.html', 'login.html', 'keys.html', 
+                    'key_generic.html', 'bypass.html', 'bypass_add.html', 
+                    'bypass_remove.html', 'bypass_view.html', 'install.html',
+                    'stats.html', 'service.html', 'updates.html']
+        for filename in templates:
+            url = f'{web_ui_url}/templates/{filename}'
+            response = requests.get(url, timeout=30)
+            if response.status_code == 200:
+                with open(f'{web_ui_dir}/templates/{filename}', 'w') as f:
+                    f.write(response.text)
+        
+        # Установка статики
+        url = f'{web_ui_url}/static/style.css'
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            with open(f'{web_ui_dir}/static/style.css', 'w') as f:
+                f.write(response.text)
+        
+        # Создание .env из примера
+        env_example = f'{web_ui_dir}/.env.example'
+        env_file = f'{web_ui_dir}/.env'
+        if os.path.exists(env_example) and not os.path.exists(env_file):
+            import shutil
+            shutil.copy(env_example, env_file)
+        
+        return True, 'Web UI установлен'
+        
+    except Exception as e:
+        return False, str(e)
+
+
 @bp.route('/install', methods=['GET', 'POST'])
 @login_required
 def service_install():
@@ -762,7 +832,15 @@ def service_install():
             process.wait(timeout=600)
             
             if process.returncode == 0:
-                flash('✅ Установка завершена', 'success')
+                flash('✅ Установка bypass_keenetic завершена', 'success')
+                
+                # Установка web_ui
+                flash('⏳ Установка Web UI...', 'info')
+                success, message = install_web_ui()
+                if success:
+                    flash(f'✅ {message}', 'success')
+                else:
+                    flash(f'⚠️ {message}', 'warning')
             else:
                 flash('❌ Ошибка установки', 'danger')
                 
