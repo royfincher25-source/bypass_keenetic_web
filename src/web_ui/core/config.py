@@ -128,12 +128,7 @@ class WebConfig:
             self._loaded = True
     
     def _load_config(self) -> None:
-        """
-        Загрузка конфигурации из .env файла и переменных окружения.
-        """
-        import logging
-        
-        # Определяем путь к .env файлу
+        """Загрузка конфигурации из .env файла и переменных окружения."""
         if self._env_file is None:
             # Поиск .env в директории, где лежит app.py
             # Используем __file__ для определения пути к этому модулю
@@ -147,16 +142,6 @@ class WebConfig:
                 self._env_file = str(WEB_ROOT / '.env')
         
         # Отладка: логируем путь
-        logging.error(f"DEBUG CONFIG: _env_file={self._env_file}")
-        logging.error(f"DEBUG CONFIG: file exists={os.path.exists(self._env_file)}")
-
-        # Загружаем .env файл
-        file_config = load_env_file(self._env_file)
-        
-        # Отладка: логируем загруженные значения
-        logging.error(f"DEBUG CONFIG: file_config={file_config}")
-
-        # Кэшируем значения с приоритетом переменных окружения
         self._cache = {
             'WEB_HOST': os.environ.get('WEB_HOST', file_config.get('WEB_HOST', DEFAULT_WEB_HOST)),
             'WEB_PORT': os.environ.get('WEB_PORT', file_config.get('WEB_PORT', str(DEFAULT_WEB_PORT))),
@@ -164,9 +149,6 @@ class WebConfig:
             'ROUTER_IP': os.environ.get('ROUTER_IP', file_config.get('ROUTER_IP', DEFAULT_ROUTER_IP)),
             'UNBLOCK_DIR': os.environ.get('UNBLOCK_DIR', file_config.get('UNBLOCK_DIR', DEFAULT_UNBLOCK_DIR)),
         }
-        
-        # Отладка: логируем кэш
-        logging.error(f"DEBUG CONFIG: cache={self._cache}")
     
     # =============================================================================
     # СВОЙСТВА

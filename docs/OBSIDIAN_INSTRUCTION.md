@@ -21,8 +21,8 @@ category:
 related:
   - "[[README]]"
   - "[[MIGRATION_TEST_TO_WEB]]"
-  - "[[src/web/app.py]]"
-  - "[[src/web/.env.example]]"
+  - "[[src/web_ui/app.py]]"
+  - "[[src/web_ui/.env.example]]"
 ---
 
 # Bypass Keenetic Web — Полное руководство для Obsidian
@@ -228,7 +228,7 @@ scp -r "$localPath\*" root@192.168.1.1:/opt/etc/bypass_keenetic_web/
 # На роутере
 cd /opt/etc
 git clone https://github.com/royfincher25-source/bypass_keenetic-web.git
-cp -r bypass_keenetic-web/src/web/* /opt/etc/bypass_keenetic_web/
+cp -r bypass_keenetic-web/src/web_ui/* /opt/etc/bypass_keenetic_web/
 ```
 
 #### Шаг 5: Настройка конфигурации
@@ -270,7 +270,7 @@ UNBLOCK_DIR=/opt/etc/unblock/
 | `ROUTER_IP` | IP-адрес роутера | `192.168.1.1` |
 | `UNBLOCK_DIR` | Директория unblock | `/opt/etc/unblock/` |
 | `LOG_LEVEL` | Уровень логирования | `INFO` |
-| `LOG_FILE` | Путь к лог-файлу | `/opt/var/log/bypass_web.log` |
+| `LOG_FILE` | Путь к лог-файлу | `/opt/var/log/web_ui.log` |
 
 #### Шаг 6: Установка зависимостей
 
@@ -297,7 +297,7 @@ python3 app.py
 
 ```bash
 # Запуск в фоне
-nohup python3 app.py > /opt/var/log/bypass_web.log 2>&1 &
+nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 
 # Или с использованием screen
 screen -S bypass_web
@@ -375,7 +375,7 @@ python app.py
 flowchart LR
     A[web folder] -->|Остановить| B[pkill python]
     B -->|Удалить| C[rm -rf web]
-    C -->|Скопировать| D[scp src/web/]
+    C -->|Скопировать| D[scp src/web_ui/]
     D -->|Настроить| E[nano .env]
     E -->|Запустить| F[python3 app.py]
 ```
@@ -549,20 +549,20 @@ flowchart TD
 # Вариант А: Копирование отдельных файлов
 
 # Обновите только измененные файлы
-scp src/web/app.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
-scp src/web/routes.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
-scp src/web/core/*.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/core/
+scp src/web_ui/app.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp src/web_ui/routes.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp src/web_ui/core/*.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/core/
 
 # Обновите шаблоны
-scp -r src/web/templates/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/templates/
+scp -r src/web_ui/templates/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/templates/
 
 # Обновите стили
-scp src/web/static/style.css root@192.168.1.1:/opt/etc/bypass_keenetic_web/static/
+scp src/web_ui/static/style.css root@192.168.1.1:/opt/etc/bypass_keenetic_web/static/
 ```
 
 ```bash
 # Вариант Б: Синхронизация всей папки
-rsync -avz --delete src/web/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+rsync -avz --delete src/web_ui/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
 ```
 
 ### 4.3 Автоматическое обновление через скрипт
@@ -596,7 +596,7 @@ pkill -f "python.*app.py"
 # Перезапуск
 echo "Перезапуск приложения..."
 cd "$LOCAL_DIR"
-nohup python3 app.py > /opt/var/log/bypass_web.log 2>&1 &
+nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 
 echo "Обновление завершено!"
 echo "Бэкап сохранён в: $BACKUP_DIR"
@@ -721,7 +721,7 @@ less /opt/etc/bypass_keenetic_web/app.py
 head -n 20 /opt/etc/bypass_keenetic_web/app.py
 
 # Просмотр последних строк (для логов)
-tail -f /opt/var/log/bypass_web.log
+tail -f /opt/var/log/web_ui.log
 ```
 
 ### 5.3 Управление процессами
@@ -737,7 +737,7 @@ python3 app.py
 
 # Запуск в фоновом режиме
 cd /opt/etc/bypass_keenetic_web
-nohup python3 app.py > /opt/var/log/bypass_web.log 2>&1 &
+nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 
 # Запуск через screen
 screen -S bypass_web
@@ -879,16 +879,16 @@ cp -r /opt/etc/bypass_keenetic_web /opt/backup/bypass_web_$(date +%Y%m%d_%H%M%S)
 # ===========================================
 
 # Просмотр лога приложения
-cat /opt/var/log/bypass_web.log
+cat /opt/var/log/web_ui.log
 
 # Просмотр в реальном времени
-tail -f /opt/var/log/bypass_web.log
+tail -f /opt/var/log/web_ui.log
 
 # Последние 50 строк
-tail -n 50 /opt/var/log/bypass_web.log
+tail -n 50 /opt/var/log/web_ui.log
 
 # Поиск ошибок в логах
-grep -i error /opt/var/log/bypass_web.log
+grep -i error /opt/var/log/web_ui.log
 
 # Просмотр системного лога
 logread | grep bypass
@@ -1264,7 +1264,7 @@ netstat -tlnp | grep 8080
 # ===========================================
 # ШАГ 3: ПРОВЕРЬТЕ ЛОГИ
 # ===========================================
-tail -100 /opt/var/log/bypass_web.log
+tail -100 /opt/var/log/web_ui.log
 
 # Ищите строки с ERROR, Exception, Traceback
 
@@ -1376,7 +1376,7 @@ graph TB
 ```mermaid
 graph TD
     subgraph Project["Проект"]
-        subgraph Src["src/web"]
+        subgraph Src["src/web_ui"]
             App[app.py<br/>Flask приложение]
             Routes[routes.py<br/>Маршруты]
             Parser[env_parser.py<br/>Парсер .env]
@@ -1529,14 +1529,14 @@ netstat -tlnp | grep 8080               # Порт занят?
 curl http://192.168.1.1:8080            # Доступен?
 
 # ЛОГИ
-tail -f /opt/var/log/bypass_web.log    # Просмотр логов
+tail -f /opt/var/log/web_ui.log    # Просмотр логов
 
 # ФАЙЛЫ
 ls -la /opt/etc/bypass_keenetic_web/   # Содержимое директории
 nano /opt/etc/bypass_keenetic_web/.env # Редактирование .env
 
 # ОБНОВЛЕНИЕ
-scp -r src/web/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/  # Копирование файлов
+scp -r src/web_ui/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/  # Копирование файлов
 
 # АВТОЗАПУСК
 /opt/etc/init.d/S99bypass_web start     # Запуск
@@ -1573,7 +1573,7 @@ UNBLOCK_DIR=/opt/etc/unblock/  # Директория unblock
 # ЛОГИРОВАНИЕ
 # ─────────────────────────────────────────────────────────
 LOG_LEVEL=INFO             # Уровень: DEBUG, INFO, WARNING, ERROR
-LOG_FILE=/opt/var/log/bypass_web.log  # Путь к логу
+LOG_FILE=/opt/var/log/web_ui.log  # Путь к логу
 ```
 
 | Параметр | Обязательно | По умолчанию | Описание |

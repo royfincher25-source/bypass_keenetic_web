@@ -56,6 +56,10 @@ WEB_PASSWORD=your_secure_password
 
 # Router Configuration
 ROUTER_IP=192.168.1.1
+UNBLOCK_DIR=/opt/etc/unblock/
+
+# Logging
+LOG_FILE=/opt/var/log/web_ui.log
 ```
 
 | Параметр | Описание | По умолчанию |
@@ -64,6 +68,8 @@ ROUTER_IP=192.168.1.1
 | WEB_PORT | Порт web-интерфейса | 8080 |
 | WEB_PASSWORD | Пароль для авторизации | changeme |
 | ROUTER_IP | IP-адрес роутера | 192.168.1.1 |
+| UNBLOCK_DIR | Директория bypass | /opt/etc/unblock/ |
+| LOG_FILE | Путь к лог-файлу | /opt/var/log/web_ui.log |
 
 ## Функционал
 
@@ -71,18 +77,23 @@ ROUTER_IP=192.168.1.1
 
 5 основных разделов:
 
-- 🔑 **Ключи и мосты** — настройка VPN ключей (Tor, Vless, Trojan, Shadowsocks)
+- 🔑 **Ключи и мосты** — настройка VPN ключей (Tor, Vless, Trojan, Shadowsocks, VLESS+REALITY)
 - 📑 **Списки обхода** — управление списками доменов для обхода блокировок
-- 📲 **Установка и удаление** — установка и удаление компонентов системы
-- 📊 **Статистика** — статистика трафика (в разработке)
-- ⚙️ **Сервис** — сервисные функции (перезапуск, бэкап, DNS override)
+- 📲 **Установка и удаление** — установка и удаление bypass_keenetic с GitHub
+- 📊 **Статистика** — статистика трафика
+- ⚙️ **Сервис** — сервисные функции:
+  - Перезапуск роутера
+  - Перезапуск всех сервисов
+  - DNS Override
+  - Бэкап конфигурации
+  - Обновление bypass_keenetic
 
 ### Авторизация
 
 Session-based авторизация с cookie:
 
 - При первом входе требуется пароль
-- Сессия действует 1 час
+- Сессия действует 24 часа
 - При выходе сессия очищается
 
 ## Безопасность
@@ -98,14 +109,14 @@ WEB_PASSWORD=your_secure_password_here
 ```
 bypass_keenetic-web/
 ├── src/
-│   └── web/            # Папка для копирования на роутер
+│   └── web_ui/            # Папка для копирования на роутер
 │       ├── app.py              # Flask приложение (factory function)
 │       ├── routes.py           # Маршруты (Blueprint main)
 │       ├── env_parser.py       # Лёгкий парсер .env
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── config.py       # WebConfig singleton
-│       │   ├── utils.py        # Утилиты, LRU-кэш
+│       │   ├── utils.py        # Утилиты, LRU-кэш, логирование
 │       │   └── services.py    # Парсеры VPN-ключей
 │       ├── templates/
 │       │   ├── base.html       # Базовый шаблон (Bootstrap 5.3 dark)
@@ -115,19 +126,21 @@ bypass_keenetic-web/
 │       │   ├── bypass.html     # Списки обхода
 │       │   ├── install.html    # Установка/удаление
 │       │   ├── stats.html      # Статистика
-│       │   └── service.html    # Сервисное меню
+│       │   ├── service.html   # Сервисное меню
+│       │   └── updates.html   # Обновления
 │       ├── static/
 │       │   └── style.css       # Custom стили
 │       ├── requirements.txt    # Зависимости Python
-│       └── .env.example        # Пример конфигурации
+│       ├── .env.example       # Пример конфигурации
+│       └── version.md         # Версия приложения
 └── README.md
 ```
 
 ## Установка
 
-1. Скопировать директорию `src/web/` на роутер:
+1. Скопировать директорию `src/web_ui/` на роутер:
    ```bash
-   scp -r src/web/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+   scp -r src/web_ui/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
    ```
 
 2. Установить зависимости:
@@ -146,6 +159,18 @@ bypass_keenetic-web/
    cd /opt/etc/bypass_keenetic_web
    python3 app.py &
    ```
+
+## Логирование
+
+Логи пишутся в файл, указанный в `LOG_FILE` (по умолчанию `/opt/var/log/web_ui.log`):
+
+```bash
+# Просмотр логов
+tail -f /opt/var/log/web_ui.log
+
+# Поиск ошибок
+grep -i error /opt/var/log/web_ui.log
+```
 
 ## Тестирование
 

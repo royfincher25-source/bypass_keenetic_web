@@ -14,15 +14,24 @@ import logging
 from pathlib import Path
 from typing import List, Tuple, Optional, Any, Dict
 
-
-# =============================================================================
-# LOGGING CONFIGURATION
-# =============================================================================
+LOG_FILE = os.environ.get('LOG_FILE', '/opt/var/log/web_ui.log')
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+if LOG_FILE:
+    try:
+        log_dir = os.path.dirname(LOG_FILE)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+        file_handler = logging.FileHandler(LOG_FILE)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(file_handler)
+    except Exception:
+        pass
+
 logger = logging.getLogger(__name__)
 
 

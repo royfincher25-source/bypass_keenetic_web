@@ -5,8 +5,10 @@ Routes for the web interface with session-based authentication.
 """
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, current_app
 import os
+import sys
 import logging
 import json
+import subprocess
 import requests
 
 # Импорты utility-функций
