@@ -37,9 +37,9 @@ def update_dnsmasq_dns(server_host: str) -> Tuple[bool, str]:
         # Read current config
         config_path = Path(DNSMASQ_CONFIG)
         if not config_path.exists():
-            error_msg = f"Config not found: {DNSMASQ_CONFIG}"
-            logger.error(error_msg)
-            return False, error_msg
+            # dnsmasq not installed - this is OK, just skip update
+            logger.warning(f"dnsmasq config not found: {DNSMASQ_CONFIG}, skipping update")
+            return True, "dnsmasq not configured"
 
         content = config_path.read_text()
 
