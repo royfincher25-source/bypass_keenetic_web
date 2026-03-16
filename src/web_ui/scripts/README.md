@@ -4,11 +4,32 @@
 
 ## Файлы
 
-- `script.sh` — основной скрипт установки/удаления (адаптирован для web_ui)
+- `install_web.sh` — установщик веб-интерфейса в одну команду
+- `script.sh` — основной скрипт установки/удаления bypass_keenetic
 - `script.sh.md5` — MD5 хэш для проверки целостности
-- `script_web.sh` — исходный код адаптированной версии (для справки)
 - `.gitkeep` — файл для отслеживания директории в git
 - `README.md` — эта документация
+
+## Установка
+
+### Быстрая установка (рекомендуется)
+
+```bash
+curl -sL https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/master/src/web_ui/scripts/install_web.sh | sh
+```
+
+### Ручная установка
+
+```bash
+# Копирование на роутер
+scp scripts/install_web.sh root@192.168.1.1:/opt/root/
+scp scripts/script.sh root@192.168.1.1:/opt/root/
+
+# Установка
+/opt/root/install_web.sh
+# или
+/opt/root/script.sh -install
+```
 
 ## Отличия от версии Telegram-бота
 
