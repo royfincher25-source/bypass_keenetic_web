@@ -33,6 +33,11 @@ from .services import (
     write_json_config,
     write_tor_config,
 )
+from .dns_monitor import (
+    DNSMonitor,
+    check_dns_server,
+    get_dns_monitor,
+)
 
 __all__ = [
     # Config
@@ -59,4 +64,8 @@ __all__ = [
     # Config writers
     'write_json_config',
     'write_tor_config',
+    # DNS Monitor
+    'DNSMonitor',
+    'check_dns_server',
+    'get_dns_monitor',
 ]

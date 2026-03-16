@@ -61,6 +61,19 @@
         </div>
     </div>
 
+    <!-- DNS Монитор -->
+    <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-activity"></i> DNS Монитор</h5>
+                <p class="text-muted small">Автоматическое переключение при отказе DNS</p>
+                <a href="{{ url_for('main.dns_monitor_status') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-gear"></i> Настроить
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Перезапуск всех сервисов -->
     <div class="col-12 col-md-6">
         <div class="card shadow-sm">

@@ -73,6 +73,19 @@ def create_app(config_class=None):
     app.register_blueprint(bp)
     register_routes(app)
 
+    # Запуск DNS монитора в фоновом режиме
+    from core.dns_monitor import DNSMonitor
+    dns_monitor = DNSMonitor()
+    dns_monitor.start()
+    logger.info("DNS monitor initialized and started")
+
+    # Регистрация обработчика завершения для graceful shutdown
+    import atexit
+    @atexit.register
+    def cleanup():
+        logger.info("Shutting down DNS monitor...")
+        dns_monitor.stop()
+
     return app
 
 
