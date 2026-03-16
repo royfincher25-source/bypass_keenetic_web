@@ -415,6 +415,48 @@ python3 -c "import flask, jinja2, werkzeug, requests; print('OK')"
 >
 > **Итого:** ~7MB (с waitress), ~5MB (без waitress)
 
+#### Шаг 6.1: Установка dnsmasq (опционально, рекомендуется)
+
+> [!tip]
+> **dnsmasq** — лёгкий DNS-сервер для автоматического переключения DNS при отказе.
+> Без dnsmasq DNS мониторинг работает, но не может автоматически обновлять конфигурацию.
+
+```bash
+# 1. Установить dnsmasq
+opkg update
+opkg install dnsmasq
+
+# 2. Создать базовую конфигурацию
+cat > /opt/etc/dnsmasq.conf << 'EOF'
+# Базовая конфигурация dnsmasq
+no-resolv
+server=8.8.8.8
+server=1.1.1.1
+listen-address=127.0.0.1
+cache-size=150
+EOF
+
+# 3. Запустить dnsmasq
+/etc/init.d/S56dnsmasq start
+
+# 4. Проверить статус
+ps | grep dnsmasq
+# Ожидается: dnsmasq запущен
+
+# 5. Проверить логи
+tail -f /opt/var/log/messages | grep dnsmasq
+```
+
+**Что даёт dnsmasq:**
+
+| Функция | С dnsmasq | Без dnsmasq |
+|---------|-----------|-------------|
+| Автопереключение DNS | ✅ Автоматически | ❌ Только логирование |
+| Кэширование DNS | ✅ Быстрее (кэш в RAM) | ❌ Нет |
+| Централизация | ✅ Все через роутер | ❌ На каждом устройстве |
+
+**Важно:** dnsmasq не критичен для работы приложения, но рекомендуется для полной функциональности DNS мониторинга.
+
 #### Шаг 7: Первый запуск
 
 ```bash
