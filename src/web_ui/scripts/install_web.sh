@@ -106,8 +106,8 @@ log_info "⏳ Загрузка core модулей..."
 mkdir -p core
 cd core
 
-CORE_FILES="__init__.py config.py utils.py services.py ipset_manager.py list_catalog.py dns_manager.py dns_monitor.py app_config.py web_config.py"
-for file in $CORE_FILES; do
+# Загружаем все .py файлы из core/
+for file in __init__.py app_config.py config.py utils.py services.py ipset_manager.py list_catalog.py dns_manager.py dns_monitor.py dns_resolver.py web_config.py; do
     printf "  → %-20s" "$file"
     if curl -sL -o "$file" "$BASE_URL/core/$file"; then
         echo " ✅"
