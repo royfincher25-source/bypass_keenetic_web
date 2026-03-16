@@ -205,6 +205,14 @@ class DNSMonitor:
         if best_server:
             self._current_server = best_server
             logger.info(f"Selected primary DNS: {best_server['name']} ({best_latency}ms)")
+
+            # Update dnsmasq config
+            from .dns_manager import update_dnsmasq_dns
+            success, msg = update_dnsmasq_dns(best_server['host'])
+            if success:
+                logger.info(f"dnsmasq updated to use {best_server['name']}")
+            else:
+                logger.error(f"Failed to update dnsmasq: {msg}")
         else:
             # Try backup
             self._switch_to_backup()
@@ -218,7 +226,15 @@ class DNSMonitor:
             if result['success']:
                 self._current_server = server
                 self._failures = 0
-                logger.info(f"Switched to backup DNS: {server['name']}")
+
+                # Update dnsmasq config
+                from .dns_manager import update_dnsmasq_dns
+                success, msg = update_dnsmasq_dns(server['host'])
+                if success:
+                    logger.info(f"Switched to backup DNS: {server['name']} (dnsmasq updated)")
+                else:
+                    logger.error(f"Failed to update dnsmasq: {msg}")
+
                 return
 
         logger.error("No working backup DNS found")
