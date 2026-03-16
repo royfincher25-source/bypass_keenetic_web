@@ -841,24 +841,18 @@ def service_dns_override(action):
         # Проверка наличия ndmc
         result = subprocess.run(['which', 'ndmc'], capture_output=True, text=True)
         if result.returncode != 0:
-            # ndmc не найден, пробуем альтернативные команды
             flash('⚠️ ndmc не найден. DNS Override недоступен.', 'warning')
             logger.warning("ndmc command not found")
             return redirect(url_for('main.service'))
         
-        # Включение/выключение DNS Override
-        cmd = ['ndmc', '-c', 'ip dns-override'] if enable else ['ndmc', '-c', 'no ip dns-override']
+        # Включение/выключение DNS Override (как в Telegram боте)
+        cmd = ['ndmc', '-c', 'opkg dns-override'] if enable else ['ndmc', '-c', 'no opkg dns-override']
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         
         if result.returncode != 0:
-            # Попытка с альтернативной командой
-            cmd_alt = ['ndmc', '-c', 'opkg dns-override'] if enable else ['ndmc', '-c', 'no opkg dns-override']
-            result_alt = subprocess.run(cmd_alt, capture_output=True, text=True, timeout=10)
-            
-            if result_alt.returncode != 0:
-                flash(f'❌ Ошибка: {result_alt.stderr or result.stderr}', 'danger')
-                logger.error(f"DNS Override error: {result_alt.stderr or result.stderr}")
-                return redirect(url_for('main.service'))
+            flash(f'❌ Ошибка: {result.stderr}', 'danger')
+            logger.error(f"DNS Override error: {result.stderr}")
+            return redirect(url_for('main.service'))
         
         time.sleep(2)
         
