@@ -299,22 +299,36 @@ def key_config(service: str):
             return redirect(url_for('main.key_config', service=service))
 
         try:
+            logger.info(f"Starting to process {service} key")
+            
             # Парсинг ключа и генерация конфига
             if service == 'vless':
+                logger.debug("Parsing VLESS key")
                 parsed = parse_vless_key(key)
+                logger.debug("VLESS key parsed, generating config")
                 cfg = vless_config(key)
+                logger.debug(f"VLESS config generated: {cfg}")
                 write_json_config(cfg, svc['config_path'])
             elif service == 'shadowsocks':
+                logger.debug("Parsing Shadowsocks key")
                 parsed = parse_shadowsocks_key(key)
+                logger.debug(f"Shadowsocks key parsed: {parsed}")
+                logger.debug("Generating Shadowsocks config")
                 cfg = shadowsocks_config(key)
+                logger.debug(f"Shadowsocks config generated: {cfg}")
                 write_json_config(cfg, svc['config_path'])
             elif service == 'trojan':
+                logger.debug("Parsing Trojan key")
                 parsed = parse_trojan_key(key)
+                logger.debug("Trojan key parsed, generating config")
                 cfg = trojan_config(key)
                 write_json_config(cfg, svc['config_path'])
             elif service == 'tor':
+                logger.debug("Generating Tor config")
                 cfg = tor_config(key)
                 write_tor_config(cfg, svc['config_path'])
+
+            logger.info(f"Config written successfully for {service}")
 
             # Перезапуск сервиса через ThreadPoolExecutor (неблокирующий)
             try:
