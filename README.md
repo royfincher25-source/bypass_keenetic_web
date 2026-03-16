@@ -140,6 +140,8 @@ netstat -tlnp | grep 8080
 > **dnsmasq** обеспечивает автоматическое переключение DNS при отказе и кэширование запросов.
 > Без dnsmasq DNS мониторинг работает, но не может автоматически обновлять конфигурацию.
 
+**Базовая установка:**
+
 ```bash
 # 1. Установить dnsmasq
 opkg update
@@ -166,6 +168,81 @@ ps | grep dnsmasq
 tail -f /opt/var/log/messages | grep dnsmasq
 ```
 
+**Если скрипт не найден:**
+
+```bash
+# 1. Найти скрипт инициализации
+find /opt/etc/init.d -name "*dnsmasq*"
+ls -la /opt/etc/init.d/ | grep dns
+
+# 2. Возможные альтернативы:
+# /opt/etc/init.d/S61dnsmasq
+# /opt/etc/init.d/dnsmasq
+
+# 3. Запустить напрямую (если скрипт не найден)
+dnsmasq --conf-file=/opt/etc/dnsmasq.conf &
+
+# 4. Проверить процесс
+ps | grep dnsmasq
+
+# 5. Проверить порт 53
+netstat -lnp | grep 53
+# Ожидается: 127.0.0.1:53
+```
+
+**Создание скрипта инициализации (если не установлен):**
+
+```bash
+# 1. Создать скрипт
+cat > /opt/etc/init.d/S56dnsmasq << 'EOF'
+#!/bin/sh
+case "$1" in
+  start)
+    echo "Starting dnsmasq..."
+    /opt/bin/dnsmasq --conf-file=/opt/etc/dnsmasq.conf
+    ;;
+  stop)
+    echo "Stopping dnsmasq..."
+    pkill dnsmasq
+    ;;
+  restart)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+  *)
+    echo "Usage: /opt/etc/init.d/S56dnsmasq {start|stop|restart}"
+    exit 1
+    ;;
+esac
+EOF
+
+# 2. Сделать исполняемым
+chmod +x /opt/etc/init.d/S56dnsmasq
+
+# 3. Запустить
+/opt/etc/init.d/S56dnsmasq start
+```
+
+**Проверка работы:**
+
+```bash
+# 1. Проверить процесс
+ps | grep dnsmasq
+# Ожидается: dnsmasq --conf-file=/opt/etc/dnsmasq.conf
+
+# 2. Проверить порт 53
+netstat -lnp | grep 53
+# Ожидается: 127.0.0.1:53
+
+# 3. Протестировать DNS
+nslookup google.com 127.0.0.1
+# Должен вернуть IP адрес
+
+# 4. Проверить логи
+logread | grep dnsmasq
+```
+
 **Что даёт dnsmasq:**
 
 | Функция | Описание |
@@ -179,6 +256,8 @@ tail -f /opt/var/log/messages | grep dnsmasq
 - ✅ Проверка доступности DNS
 - ❌ Нет автопереключения (только логирование)
 - ❌ Нет кэширования
+
+**Важно:** dnsmasq не критичен для работы приложения. Если не установлен — DNS мониторинг продолжает работать, просто логируется предупреждение.
 
 ## Чек-лист проверки
 

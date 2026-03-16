@@ -421,6 +421,8 @@ python3 -c "import flask, jinja2, werkzeug, requests; print('OK')"
 > **dnsmasq** — лёгкий DNS-сервер для автоматического переключения DNS при отказе.
 > Без dnsmasq DNS мониторинг работает, но не может автоматически обновлять конфигурацию.
 
+**Базовая установка:**
+
 ```bash
 # 1. Установить dnsmasq
 opkg update
@@ -447,6 +449,109 @@ ps | grep dnsmasq
 tail -f /opt/var/log/messages | grep dnsmasq
 ```
 
+**Если скрипт не найден:**
+
+```bash
+# 1. Найти скрипт инициализации
+find /opt/etc/init.d -name "*dnsmasq*"
+ls -la /opt/etc/init.d/ | grep dns
+
+# 2. Возможные альтернативы:
+# /opt/etc/init.d/S61dnsmasq
+# /opt/etc/init.d/dnsmasq
+
+# 3. Запустить напрямую (если скрипт не найден)
+dnsmasq --conf-file=/opt/etc/dnsmasq.conf &
+
+# 4. Проверить процесс
+ps | grep dnsmasq
+
+# 5. Проверить порт 53
+netstat -lnp | grep 53
+# Ожидается: 127.0.0.1:53
+```
+
+**Создание скрипта инициализации:**
+
+```bash
+# 1. Создать скрипт
+cat > /opt/etc/init.d/S56dnsmasq << 'EOF'
+#!/bin/sh
+case "$1" in
+  start)
+    echo "Starting dnsmasq..."
+    /opt/bin/dnsmasq --conf-file=/opt/etc/dnsmasq.conf
+    ;;
+  stop)
+    echo "Stopping dnsmasq..."
+    pkill dnsmasq
+    ;;
+  restart)
+    $0 stop
+    sleep 1
+    $0 start
+    ;;
+  *)
+    echo "Usage: /opt/etc/init.d/S56dnsmasq {start|stop|restart}"
+    exit 1
+    ;;
+esac
+EOF
+
+# 2. Сделать исполняемым
+chmod +x /opt/etc/init.d/S56dnsmasq
+
+# 3. Запустить
+/opt/etc/init.d/S56dnsmasq start
+```
+
+**Проверка работы:**
+
+```bash
+# 1. Проверить процесс
+ps | grep dnsmasq
+# Ожидается: dnsmasq --conf-file=/opt/etc/dnsmasq.conf
+
+# 2. Проверить порт 53
+netstat -lnp | grep 53
+# Ожидается: 127.0.0.1:53
+
+# 3. Протестировать DNS
+nslookup google.com 127.0.0.1
+# Должен вернуть IP адрес
+
+# 4. Проверить логи
+logread | grep dnsmasq
+```
+
+**Диагностика проблем:**
+
+```bash
+# dnsmasq не запускается:
+
+# 1. Проверить установлен ли
+opkg list-installed | grep dnsmasq
+
+# 2. Проверить конфиг
+cat /opt/etc/dnsmasq.conf
+
+# 3. Запустить в режиме отладки
+dnsmasq --conf-file=/opt/etc/dnsmasq.conf --log-debug
+
+# 4. Проверить конфликты портов
+netstat -lnp | grep 53
+# Если порт 53 занят другим процессом:
+# - Изменить listen-address в конфиге
+# - Или остановить конфликтующий сервис
+
+# 5. Проверить права доступа
+ls -la /opt/etc/dnsmasq.conf
+# Должно быть: -rw-r--r--
+
+# 6. Проверить логи
+logread | grep dnsmasq
+```
+
 **Что даёт dnsmasq:**
 
 | Функция | С dnsmasq | Без dnsmasq |
@@ -455,7 +560,7 @@ tail -f /opt/var/log/messages | grep dnsmasq
 | Кэширование DNS | ✅ Быстрее (кэш в RAM) | ❌ Нет |
 | Централизация | ✅ Все через роутер | ❌ На каждом устройстве |
 
-**Важно:** dnsmasq не критичен для работы приложения, но рекомендуется для полной функциональности DNS мониторинга.
+**Важно:** dnsmasq не критичен для работы приложения. Если не установлен — DNS мониторинг продолжает работать, просто логируется предупреждение.
 
 #### Шаг 7: Первый запуск
 
