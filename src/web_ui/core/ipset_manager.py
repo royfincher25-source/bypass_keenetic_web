@@ -337,7 +337,7 @@ def _sanitize_for_ipset(text: str) -> str:
         'example.com'
     """
     if not text:
-        return ''
+        raise ValueError("Empty entry")
 
     # Remove dangerous shell characters
     # ; | & ` $ ( ) { } < > \ ! # ~ * ? [ ]
@@ -346,5 +346,9 @@ def _sanitize_for_ipset(text: str) -> str:
 
     # Strip whitespace
     sanitized = sanitized.strip()
+
+    # Проверка на пустую строку после санитизации (Command Injection protection)
+    if not sanitized:
+        raise ValueError("Invalid entry after sanitization")
 
     return sanitized

@@ -51,17 +51,22 @@ if LOG_FILE:
 # LRU CACHE (MEMORY-OPTIMIZED)
 # =============================================================================
 
+import threading
+
+
 class Cache:
     """
     LRU cache with TTL and memory limit (50 entries for embedded devices).
 
     Optimized for embedded devices with limited RAM (128MB).
     Reduced from 100 to 50 entries to save ~15KB memory.
+    Thread-safe with threading.Lock for concurrent access.
 
     Attributes:
         _cache: Dictionary storing cached values
         _timestamps: Dictionary storing cache timestamps
         _access_order: List tracking access order for LRU eviction
+        _lock: Threading lock for thread safety
         MAX_ENTRIES: Maximum number of cache entries (default: 50)
 
     Example:
@@ -75,72 +80,76 @@ class Cache:
     _cache: Dict[str, Any] = {}
     _timestamps: Dict[str, float] = {}
     _access_order: List[str] = []
+    _lock = threading.Lock()  # Thread safety for concurrent access
     MAX_ENTRIES: int = 50  # Reduced from 100 for embedded devices
     
     @classmethod
     def set(cls, key: str, value: Any, ttl: int = 60) -> None:
         """
         Set cache value with TTL.
-        
+
         Args:
             key: Cache key
             value: Value to cache
             ttl: Time to live in seconds (default: 60)
         """
-        # LRU eviction if cache is full
-        if len(cls._cache) >= cls.MAX_ENTRIES and key not in cls._cache:
-            cls._evict_oldest()
-        
-        cls._cache[key] = value
-        cls._timestamps[key] = time.time() + ttl
-        
-        # Update access order
-        if key in cls._access_order:
-            cls._access_order.remove(key)
-        cls._access_order.append(key)
-    
+        with cls._lock:
+            # LRU eviction if cache is full
+            if len(cls._cache) >= cls.MAX_ENTRIES and key not in cls._cache:
+                cls._evict_oldest()
+
+            cls._cache[key] = value
+            cls._timestamps[key] = time.time() + ttl
+
+            # Update access order
+            if key in cls._access_order:
+                cls._access_order.remove(key)
+            cls._access_order.append(key)
+
     @classmethod
     def get(cls, key: str, default: Any = None) -> Any:
         """
         Get cached value.
-        
+
         Args:
             key: Cache key
             default: Default value if not found or expired
-        
+
         Returns:
             Cached value or default
         """
-        if not cls.is_valid(key):
-            return default
-        
-        # Update access order
-        if key in cls._access_order:
-            cls._access_order.remove(key)
-            cls._access_order.append(key)
-        
-        return cls._cache.get(key, default)
-    
+        with cls._lock:
+            if not cls.is_valid(key):
+                return default
+
+            # Update access order
+            if key in cls._access_order:
+                cls._access_order.remove(key)
+                cls._access_order.append(key)
+
+            return cls._cache.get(key, default)
+
     @classmethod
     def is_valid(cls, key: str) -> bool:
         """
         Check if cache entry is valid (exists and not expired).
-        
+
         Args:
             key: Cache key
-        
+
         Returns:
             True if valid, False otherwise
         """
-        if key not in cls._cache:
-            return False
-        
-        if time.time() > cls._timestamps.get(key, 0):
-            # Expired - remove
-            cls._remove(key)
-            return False
-        
-        return True
+        with cls._lock:
+            if key not in cls._cache:
+                return False
+
+            if time.time() > cls._timestamps.get(key, 0):
+                # Expired - remove
+                cls._remove(key)
+                return False
+
+            return True
     
     @classmethod
     def _remove(cls, key: str) -> None:

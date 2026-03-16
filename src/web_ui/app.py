@@ -17,22 +17,6 @@ from core.app_config import WebConfig
 logger = logging.getLogger(__name__)
 
 
-def csrf_token(f):
-    """Decorator to require CSRF token on POST requests."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if request.method == 'POST':
-            token = session.get('csrf_token')
-            form_token = request.form.get('csrf_token')
-            if not token or not form_token or token != form_token:
-                abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
-
-
-# Make CSRF decorator available for routes
-app = None
-
 def create_app(config_class=None):
     """
     Create and configure the Flask application.
@@ -98,6 +82,9 @@ def create_app(config_class=None):
     def cleanup():
         logger.info("Shutting down DNS monitor...")
         dns_monitor.stop()
+        logger.info("Shutting down ThreadPoolExecutor...")
+        from routes import shutdown_executor
+        shutdown_executor()
 
     return app
 

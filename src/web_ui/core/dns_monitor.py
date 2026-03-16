@@ -11,6 +11,7 @@ import threading
 import time
 import socket
 import logging
+import traceback
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
@@ -186,7 +187,7 @@ class DNSMonitor:
                 self._last_check = datetime.now()
 
             except Exception as e:
-                logger.error(f"DNSMonitor error: {e}")
+                logger.error(f"DNSMonitor error: {e}\n{traceback.format_exc()}")
 
             # Wait for next check
             time.sleep(CHECK_INTERVAL)

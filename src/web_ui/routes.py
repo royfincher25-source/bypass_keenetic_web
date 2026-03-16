@@ -6,6 +6,7 @@ Routes for the web interface with session-based authentication.
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, current_app
 from functools import wraps
 from werkzeug.utils import secure_filename
+from markupsafe import escape
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import sys
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 # Thread pool for blocking operations (embedded-optimized: 2 workers max)
 executor = ThreadPoolExecutor(max_workers=2)
+
+# Validation constants for embedded devices (128MB RAM)
+MAX_ENTRIES_PER_REQUEST = 100  # Максимум записей за один запрос
+MAX_ENTRY_LENGTH = 253  # Максимальная длина одной записи (DNS limit)
+MAX_TOTAL_INPUT_SIZE = 50 * 1024  # 50KB лимит на общий размер ввода
 
 # Импорты utility-функций
 from core.utils import (
@@ -407,8 +413,25 @@ def add_to_bypass(filename: str):
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
 
+        # Проверка на общий размер ввода (DoS protection)
+        if len(entries_text) > MAX_TOTAL_INPUT_SIZE:
+            flash(f'Превышен лимит размера ввода (макс. {MAX_TOTAL_INPUT_SIZE // 1024}KB)', 'danger')
+            return redirect(url_for('main.bypass'))
+
         # Разбиваем на отдельные записи
         new_entries = [e.strip() for e in entries_text.split('\n') if e.strip()]
+
+        # Проверка на количество записей (DoS protection)
+        if len(new_entries) > MAX_ENTRIES_PER_REQUEST:
+            flash(f'Превышено количество записей (макс. {MAX_ENTRIES_PER_REQUEST})', 'danger')
+            return redirect(url_for('main.bypass'))
+
+        # Проверка на длину записей (XSS + DoS protection)
+        for entry in new_entries:
+            if len(entry) > MAX_ENTRY_LENGTH:
+                # XSS protection: escape user input
+                flash(f'Запись слишком длинная (макс. {MAX_ENTRY_LENGTH} симв.): {escape(entry[:50])}...', 'danger')
+                return redirect(url_for('main.bypass'))
 
         # Загружаем текущий список
         current_list = load_bypass_list(filepath)
@@ -451,7 +474,9 @@ def add_to_bypass(filename: str):
             else:
                 flash(f'⚠️ Добавлено {added_count} записей, но ошибка при применении: {output}', 'warning')
         elif invalid_entries:
-            flash(f'⚠️ Все записи уже в списке или невалидны. Нераспознанные: {", ".join(invalid_entries[:5])}', 'warning')
+            # XSS protection: escape user input
+            escaped_invalid = [escape(e) for e in invalid_entries[:5]]
+            flash(f'⚠️ Все записи уже в списке или невалидны. Нераспознанные: {", ".join(escaped_invalid)}', 'warning')
         else:
             flash('ℹ️ Все записи уже были в списке', 'info')
 
@@ -487,8 +512,18 @@ def remove_from_bypass(filename: str):
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
 
+        # Проверка на общий размер ввода (DoS protection)
+        if len(entries_text) > MAX_TOTAL_INPUT_SIZE:
+            flash(f'Превышен лимит размера ввода (макс. {MAX_TOTAL_INPUT_SIZE // 1024}KB)', 'danger')
+            return redirect(url_for('main.bypass_view', filename=filename))
+
         # Разбиваем на отдельные записи
         to_remove = [e.strip() for e in entries_text.split('\n') if e.strip()]
+
+        # Проверка на количество записей (DoS protection)
+        if len(to_remove) > MAX_ENTRIES_PER_REQUEST:
+            flash(f'Превышено количество записей (макс. {MAX_ENTRIES_PER_REQUEST})', 'danger')
+            return redirect(url_for('main.bypass_view', filename=filename))
 
         # Загружаем текущий список
         current_list = load_bypass_list(filepath)
@@ -1181,3 +1216,18 @@ def clear_logs():
         logger.error(f"clear_logs Exception: {e}")
     
     return redirect(url_for('main.view_logs'))
+
+
+# =============================================================================
+# SHUTDOWN HOOKS
+# =============================================================================
+
+def shutdown_executor():
+    """
+    Gracefully shutdown ThreadPoolExecutor.
+
+    Call this function during application shutdown to prevent resource leaks.
+    """
+    logger.info("Shutting down ThreadPoolExecutor...")
+    executor.shutdown(wait=False)
+    logger.info("ThreadPoolExecutor stopped")
