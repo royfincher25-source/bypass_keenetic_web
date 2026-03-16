@@ -573,6 +573,43 @@ def refresh_bypass_ipset(filename: str):
     return redirect(url_for('main.view_bypass', filename=filename))
 
 
+@bp.route('/bypass/catalog')
+@login_required
+def bypass_catalog():
+    """
+    Show list catalog.
+    
+    Requires authentication.
+    """
+    from core.list_catalog import get_catalog
+    catalog = get_catalog()
+    return render_template('bypass_catalog.html', catalog=catalog)
+
+
+@bp.route('/bypass/catalog/<name>', methods=['POST'])
+@login_required
+@csrf_required
+def download_list(name: str):
+    """
+    Download list from catalog.
+    
+    Requires authentication and CSRF token.
+    """
+    from core.list_catalog import download_list
+    
+    config = WebConfig()
+    dest_dir = config.unblock_dir
+    
+    success, message, count = download_list(name, dest_dir)
+    
+    if success:
+        flash(f'✅ {message}', 'success')
+    else:
+        flash(f'❌ {message}', 'danger')
+    
+    return redirect(url_for('main.bypass_catalog'))
+
+
 @bp.route('/install')
 @login_required
 def install():
