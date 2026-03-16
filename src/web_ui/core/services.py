@@ -726,22 +726,33 @@ def check_service_status(init_script: str) -> str:
 def write_json_config(config: Dict[str, Any], filepath: str) -> None:
     """
     Write configuration to JSON file atomically.
-    
+
     Args:
         config: Configuration dict
         filepath: Path to output file
     """
+    logger.info(f"write_json_config: writing to {filepath}")
     temp_path = filepath + '.tmp'
-    
+
     try:
+        # Создать директорию если не существует
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        logger.debug(f"Directory created or exists: {os.path.dirname(filepath)}")
+        
+        logger.debug(f"Writing config to {temp_path}")
         with open(temp_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
-        
+        logger.debug(f"Config written to {temp_path}")
+
+        logger.debug(f"Replacing {temp_path} with {filepath}")
         os.replace(temp_path, filepath)
         logger.info(f"Config written to {filepath}")
-    
+
     except Exception as e:
         logger.error(f"Error writing config: {e}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         try:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
