@@ -1,34 +1,61 @@
 #!/bin/sh
 # S99web_ui - Скрипт автозапуска веб-интерфейса
 
-case "$1" in
-  start)
+WEB_DIR="/opt/etc/web_ui"
+PIDFILE="/var/run/web_ui.pid"
+
+start() {
     echo "Starting web UI..."
-    cd /opt/etc/web_ui
+    cd "$WEB_DIR"
     python3 app.py > /opt/var/log/web_ui.log 2>&1 &
-    ;;
-  stop)
+    echo $! > "$PIDFILE"
+    echo "Web UI started"
+}
+
+stop() {
     echo "Stopping web UI..."
-    pkill -f "python.*app.py"
-    ;;
-  restart)
-    $0 stop
-    sleep 2
-    $0 start
-    ;;
-  status)
-    if pgrep -f "python.*app.py" > /dev/null; then
-      echo "Web UI is running"
-      exit 0
+    if [ -f "$PIDFILE" ]; then
+        kill $(cat "$PIDFILE") 2>/dev/null || killall python3 2>/dev/null
+        rm -f "$PIDFILE"
     else
-      echo "Web UI is not running"
-      exit 1
+        killall python3 2>/dev/null
     fi
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|restart|status}"
-    exit 1
-    ;;
+    echo "Web UI stopped"
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+status() {
+    if pgrep -f "python.*app.py" > /dev/null 2>&1 || pgrep -f "python3.*app.py" > /dev/null 2>&1; then
+        echo "Web UI is running"
+        exit 0
+    else
+        echo "Web UI is not running"
+        exit 1
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
 esac
 
 exit 0
