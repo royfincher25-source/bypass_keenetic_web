@@ -16,15 +16,15 @@ fi
 BASE_URL=$(grep "^base_url" "$WEB_CONFIG" | awk -F'"' '{print $2}')
 WEB_URL="$BASE_URL/src/web_ui"
 
-# Чтение IP и портов
-lanip=$(grep "routerip" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' "')
-localportsh=$(grep "localportsh" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-dnsporttor=$(grep "dnsporttor" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-localporttor=$(grep "localporttor" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-localportvless=$(grep "localportvless" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-localporttrojan=$(grep "localporttrojan" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-dnsovertlsport=$(grep "dnsovertlsport" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
-dnsoverhttpsport=$(grep "dnsoverhttpsport" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+# Чтение IP и портов (формат: key = value)
+lanip=$(grep "^routerip" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' "')
+localportsh=$(grep "^localportsh" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+dnsporttor=$(grep "^dnsporttor" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+localporttor=$(grep "^localporttor" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+localportvless=$(grep "^localportvless" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+localporttrojan=$(grep "^localporttrojan" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+dnsovertlsport=$(grep "^dnsovertlsport" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+dnsoverhttpsport=$(grep "^dnsoverhttpsport" "$WEB_CONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
 
 # Чтение версии прошивки
 if [ -f /proc/version ]; then
@@ -35,9 +35,9 @@ else
     exit 1
 fi
 
-# Функция для чтения путей из конфига
+# Функция для чтения путей из конфига (формат: key = "value")
 read_path() {
-    sed -n "/\"$1\":/s/.*\": *\"\([^\"]*\)\".*/\1/p" "$WEB_CONFIG"
+    grep "^$1" "$WEB_CONFIG" | awk -F'"' '{print $2}'
 }
 
 # Чтение путей из paths
