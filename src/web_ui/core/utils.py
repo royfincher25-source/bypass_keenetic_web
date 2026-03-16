@@ -20,6 +20,9 @@ LOG_FILE = os.environ.get('LOG_FILE', '/opt/var/log/web_ui.log')
 LOG_MAX_BYTES = 100 * 1024  # 100KB
 LOG_BACKUP_COUNT = 3  # 3 backup files = 300KB max
 
+# Создать logger до использования
+logger = logging.getLogger(__name__)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -42,8 +45,6 @@ if LOG_FILE:
     except Exception as e:
         logger.error(f"Failed to setup log rotation: {e}")
         pass
-
-logger = logging.getLogger(__name__)
 
 
 # =============================================================================
