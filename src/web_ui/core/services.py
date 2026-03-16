@@ -654,7 +654,7 @@ def restart_service(service_name: str, init_script: str) -> Tuple[bool, str]:
 def check_service_status(init_script: str) -> str:
     """
     Check service status with caching (30s TTL).
-    
+
     Caching reduces CPU load by avoiding frequent subprocess calls.
 
     Args:
@@ -663,22 +663,30 @@ def check_service_status(init_script: str) -> str:
     Returns:
         Status string
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Cache status for 30 seconds to reduce CPU load
     cache_key = f'status:{init_script}'
     cached_status = Cache.get(cache_key)
     if cached_status:
         return cached_status
+
+    logger.debug(f"Checking status for {init_script}")
     
     if not os.path.exists(init_script):
+        logger.warning(f"Init script not found: {init_script}")
         status = "❌ Скрипт не найден"
     else:
         try:
+            logger.debug(f"Running: sh {init_script} status")
             result = subprocess.run(
                 ['sh', init_script, 'status'],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
+            logger.debug(f"Status result: returncode={result.returncode}, stdout={result.stdout[:100] if result.stdout else 'empty'}")
 
             if result.returncode == 0:
                 status = "✅ Активен"
@@ -693,16 +701,21 @@ def check_service_status(init_script: str) -> str:
                     status = "❌ Не активен"
 
         except subprocess.TimeoutExpired:
+            logger.error(f"Timeout checking status for {init_script}")
             status = "⏱️  Таймаут проверки"
         except FileNotFoundError:
+            logger.warning(f"File not found: {init_script}")
             status = "❌ Скрипт не найден"
         except PermissionError:
+            logger.error(f"Permission denied: {init_script}")
             status = "❌ Нет прав на скрипт"
         except Exception as e:
+            logger.error(f"Error checking status for {init_script}: {e}")
             status = f"❓ Ошибка: {str(e)}"
-    
+
     # Cache for 30 seconds
     Cache.set(cache_key, status, ttl=30)
+    logger.debug(f"Status for {init_script}: {status}")
     return status
 
 
