@@ -49,6 +49,17 @@
             <div class="card-body">
                 <h5 class="card-title"><i class="bi bi-globe"></i> DNS Override</h5>
                 <p class="text-muted small">Перенаправление DNS запросов через роутер</p>
+                
+                <!-- Статус DNS Override -->
+                <div class="mb-2">
+                    {% set dns_status = 'ВКЛ' if dns_override_enabled else 'ВЫКЛ' %}
+                    {% set dns_class = 'success' if dns_override_enabled else 'secondary' %}
+                    <span class="badge bg-{{ dns_class }}">
+                        <i class="bi bi-{{ 'check-circle' if dns_override_enabled else 'x-circle' }}"></i>
+                        DNS Override: {{ dns_status }}
+                    </span>
+                </div>
+                
                 <form method="POST" action="{{ url_for('main.service_dns_override', action='on') }}" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-success btn-sm">ВКЛ</button>

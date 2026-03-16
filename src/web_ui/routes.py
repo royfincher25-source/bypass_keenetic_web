@@ -735,7 +735,19 @@ def service():
 
     Requires authentication.
     """
-    return render_template('service.html')
+    # Проверка статуса DNS Override
+    dns_override_enabled = False
+    try:
+        result = subprocess.run(
+            ['ndmc', '-c', 'show running | grep dns-override'],
+            capture_output=True, text=True, shell=True, timeout=5
+        )
+        dns_override_enabled = (result.returncode == 0 and 'dns-override' in result.stdout)
+    except Exception as e:
+        logger.error(f"Error checking DNS Override status: {e}")
+        dns_override_enabled = False
+
+    return render_template('service.html', dns_override_enabled=dns_override_enabled)
 
 
 @bp.route('/service/restart-unblock', methods=['POST'])
@@ -824,18 +836,32 @@ def service_dns_override(action):
     """
     import time
     enable = (action == 'on')
-    
+
     try:
-        cmd = ['ndmc', '-c', 'opkg dns-override'] if enable else ['ndmc', '-c', 'no opkg dns-override']
-        subprocess.run(cmd, timeout=10)
+        cmd = ['ndmc', '-c', 'ip dns-override'] if enable else ['ndmc', '-c', 'no ip dns-override']
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        
+        if result.returncode != 0:
+            flash(f'❌ Ошибка: {result.stderr}', 'danger')
+            logger.error(f"DNS Override error: {result.stderr}")
+            return redirect(url_for('main.service'))
+        
         time.sleep(2)
+        
+        # Сохранение конфигурации
         subprocess.run(['ndmc', '-c', 'system', 'configuration', 'save'], timeout=10)
         
-        flash('✅ DNS Override ' + ('включен' if enable else 'выключен') + '. Роутер будет перезагружен.', 'warning')
+        # Автоматическая перезагрузка
+        flash('✅ DNS Override ' + ('включен' if enable else 'выключен') + '. Роутер будет перезагружен...', 'success')
+        logger.info("DNS Override changed, rebooting...")
+        
+        # Асинхронная перезагрузка (не блокируем ответ)
+        subprocess.Popen(['ndmc', '-c', 'system', 'reboot'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
     except Exception as e:
         flash(f'❌ Ошибка: {str(e)}', 'danger')
         logger.error(f"service_dns_override Exception: {e}")
-    
+
     return redirect(url_for('main.service'))
 
 
