@@ -17,8 +17,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Thread pool for blocking operations (embedded-optimized: 2 workers max)
-executor = ThreadPoolExecutor(max_workers=2)
+# Thread pool for blocking operations (increased to 4 workers for better performance)
+executor = ThreadPoolExecutor(max_workers=4)
 
 # Validation constants for embedded devices (128MB RAM)
 MAX_ENTRIES_PER_REQUEST = 100  # Максимум записей за один запрос

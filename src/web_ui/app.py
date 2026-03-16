@@ -100,12 +100,12 @@ if __name__ == '__main__':
     try:
         from waitress import serve
         logger = logging.getLogger('waitress')
-        logger.info(f"Starting waitress server on {host}:{port} with 2 threads")
+        logger.info(f"Starting waitress server on {host}:{port} with 4 threads")
         serve(
             app,
             host=host,
             port=port,
-            threads=2,  # Минимум воркеров для embedded (128MB RAM)
+            threads=4,  # Увеличено для лучшей производительности
             connection_limit=10,  # Лимит подключений для защиты от перегрузки
             cleanup_interval=30,  # Очистка каждые 30 секунд
             channel_timeout=30,  # Таймаут канала
