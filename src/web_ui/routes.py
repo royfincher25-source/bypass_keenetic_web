@@ -187,9 +187,11 @@ def keys():
 
     Requires authentication.
     """
+    logger.info("Accessing /keys page")
+    
     # Проверка статусов сервисов
     config = WebConfig()
-    
+
     services = {
         'vless': {
             'name': 'VLESS',
@@ -216,12 +218,19 @@ def keys():
             'status': '❓',
         },
     }
-    
+
     # Проверка статусов
     for service in services.values():
-        service['status'] = check_service_status(service['init'])
-        service['config_exists'] = os.path.exists(service['config'])
-    
+        try:
+            service['status'] = check_service_status(service['init'])
+            service['config_exists'] = os.path.exists(service['config'])
+            logger.debug(f"Service {service['name']}: status={service['status']}, config_exists={service['config_exists']}")
+        except Exception as e:
+            logger.error(f"Error checking status for {service['name']}: {e}")
+            service['status'] = '❌'
+            service['config_exists'] = False
+
+    logger.info(f"/keys page rendered with {len(services)} services")
     return render_template('keys.html', services=services)
 
 
@@ -231,15 +240,16 @@ def keys():
 def key_config(service: str):
     """
     Handle key configuration for a service.
-    
+
     Args:
         service: Service name (vless, shadowsocks, trojan, tor)
-    
+
     Returns:
         Rendered key configuration page
     """
+    logger.info(f"Accessing /keys/{service} page")
     config = WebConfig()
-    
+
     services_config = {
         'vless': {
             'name': 'VLESS',
@@ -262,20 +272,23 @@ def key_config(service: str):
             'init_script': '/opt/etc/init.d/S35tor',
         },
     }
-    
+
     if service not in services_config:
+        logger.warning(f"Invalid service requested: {service}")
         flash('Неверный сервис', 'danger')
         return redirect(url_for('main.keys'))
-    
+
     svc = services_config[service]
-    
+    logger.debug(f"Service config: {svc}")
+
     if request.method == 'POST':
         key = request.form.get('key', '').strip()
-        
+        logger.info(f"POST /keys/{service}: key received (length={len(key) if key else 0})")
+
         if not key:
             flash('Введите ключ', 'warning')
             return redirect(url_for('main.key_config', service=service))
-        
+
         try:
             # Парсинг ключа и генерация конфига
             if service == 'vless':
