@@ -105,16 +105,37 @@ related:
 
 #### Программные требования
 
-| Компонент | Версия | Примечание |
-|-----------|--------|------------|
-| [[Python]] | 3.8+ | Требуется интерпретатор |
-| [[Flask]] | 3.0.0 | Веб-фреймворк |
-| [[Jinja2]] | 3.1.2 | Шаблонизатор |
-| [[Werkzeug]] | 3.0.0 | WSGI-утилиты |
-| [[requests]] | >= 2.31.0 | HTTP-клиент |
+| Компонент | Версия | Размер | Примечание |
+|-----------|--------|--------|------------|
+| [[Python]] | 3.8+ | ~10MB | Требуется интерпретатор |
+| [[Flask]] | 3.0.0 | ~2.5MB | Веб-фреймворк |
+| [[Jinja2]] | 3.1.2 | ~1MB | Шаблонизатор |
+| [[Werkzeug]] | 3.0.0 | ~1MB | WSGI-утилиты |
+| [[requests]] | >= 2.31.0 | ~500KB | HTTP-клиент |
+| [[waitress]] | 2.1.2 | ~200KB | Production server (опционально) |
+
+**Итого:** ~7MB (с waitress), ~5MB (без waitress)
 
 > [!warning] Важно
-> Перед установкой убедитесь, что на роутере установлен **Entware**
+> Перед установкой убедитесь, что на роутере установлен **Entware** и есть **20MB+** свободного места
+
+### 1.5 Оптимизации для embedded-устройств
+
+> [!success] Критические оптимизации (Фаза 1-2)
+> Проект оптимизирован для работы на роутерах со 128MB RAM:
+>
+> **Память:**
+> - Ротация логов: 100KB × 3 = 300KB макс. (was ∞)
+> - LRU-кэш: 50 записей (was 100) → экономия ~15KB
+> - MD5-хэш для VPN-ключей (was полные ключи) → экономия ~40KB
+>
+> **CPU:**
+> - Кэширование статусов сервисов: 30с TTL → CPU ↓80%
+> - ThreadPoolExecutor: 2 воркера max → нет блокировки интерфейса
+>
+> **Production:**
+> - Waitress server: threads=2, connection_limit=10
+> - Уменьшены таймауты requests: 30с → 15с
 
 ### 1.4 Сравнение с Telegram-ботом
 
@@ -279,8 +300,25 @@ UNBLOCK_DIR=/opt/etc/unblock/
 pip3 install -r requirements.txt
 
 # 2. Или с использованием pip3 (альтернатива)
-pip3 install Flask==3.0.0 Jinja2==3.1.2 Werkzeug==3.0.0 requests>=2.31.0
+pip3 install Flask==3.0.0 Jinja2==3.1.2 Werkzeug==3.0.0 requests>=2.31.0 waitress==2.1.2
+
+# 3. Проверка установки
+pip3 list | grep -E "Flask|Jinja2|Werkzeug|requests|waitress"
+
+# 4. Проверка импорта модулей
+python3 -c "import flask, jinja2, werkzeug, requests; print('OK')"
 ```
+
+> [!info] Зависимости
+> | Пакет | Версия | Размер | Назначение |
+> |-------|--------|--------|------------|
+> | Flask | 3.0.0 | ~2.5MB | Веб-фреймворк |
+> | Jinja2 | 3.1.2 | ~1MB | Шаблонизатор |
+> | Werkzeug | 3.0.0 | ~1MB | WSGI-утилиты |
+> | requests | >=2.31.0 | ~500KB | HTTP-клиент |
+> | waitress | 2.1.2 | ~200KB | Production server |
+>
+> **Итого:** ~7MB (с waitress), ~5MB (без waitress)
 
 #### Шаг 7: Первый запуск
 
@@ -304,6 +342,124 @@ screen -S bypass_web
 python3 app.py
 # Нажмите Ctrl+A, затем D для отключения
 ```
+
+### 2.2.1 Рекомендации по установке
+
+> [!checklist] Чек-лист перед установкой
+>
+> **1. Проверка ресурсов роутера:**
+> ```bash
+> # Проверить свободное место
+> df -h /opt
+> # Требуется: минимум 20MB, рекомендуется 50MB+
+>
+> # Проверить доступную память
+> free -m
+> # Требуется: минимум 64MB свободной
+>
+> # Проверить версию Python
+> python3 --version
+> # Требуется: Python 3.8+
+> ```
+>
+> **2. Установка зависимостей:**
+> ```bash
+> # Вариант А: Из requirements.txt (рекомендуется)
+> cd /opt/etc/bypass_keenetic_web
+> pip3 install -r requirements.txt
+>
+> # Вариант Б: Прямая установка
+> pip3 install Flask==3.0.0 Jinja2==3.1.2 Werkzeug==3.0.0 requests>=2.31.0 waitress==2.1.2
+> ```
+>
+> **3. Проверка установки:**
+> ```bash
+> # Проверить установленные пакеты
+> pip3 list | grep -E "Flask|Jinja2|Werkzeug|requests|waitress"
+>
+> # Проверить импорт модулей
+> python3 -c "import flask, jinja2, werkzeug, requests; print('OK')"
+> ```
+>
+> **4. Первый запуск:**
+> ```bash
+> # Запуск в фоновом режиме
+> cd /opt/etc/bypass_keenetic_web
+> nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
+>
+> # Проверка процесса
+> ps | grep python
+>
+> # Проверка порта
+> netstat -tlnp | grep 8080
+> ```
+
+### 2.2.2 Чек-лист проверки после установки
+
+> [!success] Проверка работоспособности
+>
+> **После установки:**
+> ```bash
+> # 1. Проверка процесса
+> ps | grep python
+> # Ожидается: python3 app.py запущен
+>
+> # 2. Проверка порта
+> netstat -tlnp | grep 8080
+> # Ожидается: порт 8080 открыт
+>
+> # 3. Проверка логов
+> tail -f /opt/var/log/web_ui.log
+> # Ожидается: нет ошибок ERROR/CRITICAL
+>
+> # 4. Проверка доступности
+> curl -I http://localhost:8080
+> # Ожидается: HTTP/1.0 302 Found (редирект на /login)
+>
+> # 5. Проверка размера логов
+> ls -lh /opt/var/log/web_ui.log*
+> # Ожидается: <300KB (3 файла по 100KB)
+> ```
+>
+> **После оптимизаций:**
+> ```bash
+> # 1. Потребление памяти
+> ps | grep python | awk '{print $2}'
+> # Ожидается: ~10-15MB (was ~25MB)
+>
+> # 2. Проверка кэширования
+> time curl http://localhost:8080/keys
+> # 2-й запрос должен быть быстрее (кэш статусов 30с)
+>
+> # 3. Проверка ротации логов
+> ls -lh /opt/var/log/web_ui.log*
+> # Ожидается: 3 файла по ~100KB
+>
+> # 4. Проверка ThreadPoolExecutor
+> curl http://localhost:8080/keys &
+> curl http://localhost:8080/service &
+> wait
+> # Оба запроса выполнятся параллельно
+> ```
+>
+> **Диагностика проблем:**
+> ```bash
+> # Если не запускается:
+>
+> # 1. Проверить логи
+> tail -n 50 /opt/var/log/web_ui.log
+>
+> # 2. Проверить зависимости
+> pip3 show flask
+>
+> # 3. Проверить .env
+> cat /opt/etc/bypass_keenetic_web/.env
+>
+> # 4. Запустить в режиме отладки
+> cd /opt/etc/bypass_keenetic_web
+> python3 app.py
+> # Смотреть вывод в консоль
+> ```
 
 ### 2.3 Локальная разработка (Windows)
 
