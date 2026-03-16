@@ -219,15 +219,22 @@ def keys():
         },
     }
 
-    # Проверка статусов
+    # Проверка статусов с таймаутом
     for service in services.values():
         try:
-            service['status'] = check_service_status(service['init'])
-            service['config_exists'] = os.path.exists(service['config'])
+            # Проверяем существование скрипта
+            if not os.path.exists(service['init']):
+                logger.warning(f"Init script not found: {service['init']}")
+                service['status'] = "❌ Скрипт не найден"
+                service['config_exists'] = False
+            else:
+                # Быстрая проверка статуса (без subprocess)
+                service['status'] = check_service_status(service['init'])
+                service['config_exists'] = os.path.exists(service['config'])
             logger.debug(f"Service {service['name']}: status={service['status']}, config_exists={service['config_exists']}")
         except Exception as e:
             logger.error(f"Error checking status for {service['name']}: {e}")
-            service['status'] = '❌'
+            service['status'] = '❌ Ошибка'
             service['config_exists'] = False
 
     logger.info(f"/keys page rendered with {len(services)} services")
