@@ -6,6 +6,7 @@ Routes for the web interface with session-based authentication.
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, current_app
 from functools import wraps
 from werkzeug.utils import secure_filename
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import sys
 import logging
@@ -14,6 +15,9 @@ import subprocess
 import requests
 
 logger = logging.getLogger(__name__)
+
+# Thread pool for blocking operations (embedded-optimized: 2 workers max)
+executor = ThreadPoolExecutor(max_workers=2)
 
 # Импорты utility-функций
 from core.utils import (
@@ -288,17 +292,22 @@ def key_config(service: str):
             elif service == 'tor':
                 cfg = tor_config(key)
                 write_tor_config(cfg, svc['config_path'])
-            
-            # Перезапуск сервиса
-            success, output = restart_service(svc['name'], svc['init_script'])
-            
-            if success:
-                flash(f'✅ {svc["name"]} успешно настроен и перезапущен', 'success')
-            else:
-                flash(f'⚠️ Конфигурация сохранена, но ошибка перезапуска: {output}', 'warning')
-            
+
+            # Перезапуск сервиса через ThreadPoolExecutor (неблокирующий)
+            try:
+                future = executor.submit(restart_service, svc['name'], svc['init_script'])
+                success, output = future.result(timeout=30)  # Max 30s wait
+
+                if success:
+                    flash(f'✅ {svc["name"]} успешно настроен и перезапущен', 'success')
+                else:
+                    flash(f'⚠️ Конфигурация сохранена, но ошибка перезапуска: {output}', 'warning')
+            except TimeoutError:
+                logger.warning(f"Service restart timeout: {svc['name']}")
+                flash(f'⏱️ Превышено время ожидания перезапуска {svc["name"]} (30с)', 'warning')
+
             return redirect(url_for('main.keys'))
-        
+
         except ValueError as e:
             flash(f'❌ Ошибка в ключе: {str(e)}', 'danger')
             logger.error(f"save_key ValueError: {e}")
@@ -815,11 +824,11 @@ def service_install():
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
         script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
-        
+
         try:
-            # Загружаем скрипт с GitHub
+            # Загружаем скрипт с GitHub (уменьшенный таймаут для embedded)
             flash('⏳ Загрузка скрипта установки...', 'info')
-            response = requests.get(script_url, timeout=30)
+            response = requests.get(script_url, timeout=15)
             if response.status_code != 200:
                 flash(f'❌ Ошибка загрузки: {response.status_code}', 'danger')
                 return redirect(url_for('main.service_install'))

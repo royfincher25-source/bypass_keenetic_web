@@ -6,6 +6,7 @@ Flask application for Keenetic router bypass management.
 import os
 import sys
 import secrets
+import logging
 from functools import wraps
 from flask import Flask, session, request, abort
 from datetime import timedelta
@@ -77,8 +78,32 @@ def create_app(config_class=None):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(
-        host=app.config['WEB_HOST'],
-        port=app.config['WEB_PORT'],
-        debug=False
-    )
+    
+    host = app.config['WEB_HOST']
+    port = app.config['WEB_PORT']
+    
+    # Production server (waitress) для embedded-устройств
+    # Легче чем gunicorn (~2MB vs ~5MB), лучше для production
+    try:
+        from waitress import serve
+        logger = logging.getLogger('waitress')
+        logger.info(f"Starting waitress server on {host}:{port} with 2 threads")
+        serve(
+            app,
+            host=host,
+            port=port,
+            threads=2,  # Минимум воркеров для embedded (128MB RAM)
+            connection_limit=10,  # Лимит подключений для защиты от перегрузки
+            cleanup_interval=30,  # Очистка каждые 30 секунд
+            channel_timeout=30,  # Таймаут канала
+        )
+    except ImportError:
+        # Fallback на development server с threaded=True
+        import logging
+        logging.warning("Waitress not found, using Flask development server")
+        app.run(
+            host=host,
+            port=port,
+            debug=False,
+            threaded=True  # Хотя бы многопоточность
+        )
