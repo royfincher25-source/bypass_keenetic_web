@@ -933,14 +933,14 @@ pytest test/web/test_integration.py -v
 ### Manual Testing on Router
 ```bash
 # 1. Install on router
-scp -r src/web_ui/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp -r src/web_ui/ root@192.168.1.1:/opt/etc/web_ui/
 
 # 2. Install dependencies
-pip3 install -r /opt/etc/bypass_keenetic_web/requirements.txt
+pip3 install -r /opt/etc/web_ui/requirements.txt
 
 # 3. Restart app
 pkill -f "python.*app.py"
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py &
 
 # 4. Test via browser
@@ -972,11 +972,11 @@ If issues occur:
 
 ```bash
 # 1. Revert to previous version
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 git stash  # Save changes
 
 # 2. Restore from backup
-cp -r /opt/backup/bypass_web_YYYYMMDD/* /opt/etc/bypass_keenetic_web/
+cp -r /opt/backup/bypass_web_YYYYMMDD/* /opt/etc/web_ui/
 
 # 3. Restart app
 pkill -f "python.*app.py"

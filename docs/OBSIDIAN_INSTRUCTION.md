@@ -319,10 +319,10 @@ opkg install python3-pip
 
 ```bash
 # 1. Создайте директорию для приложения
-mkdir -p /opt/etc/bypass_keenetic_web
+mkdir -p /opt/etc/web_ui
 
 # 2. Перейдите в неё
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 ```
 
 #### Шаг 4: Копирование файлов
@@ -335,7 +335,7 @@ cd /opt/etc/bypass_keenetic_web
 $localPath = "H:\disk_e\dell\bypass_keenetic-web\src\web"
 
 # Копирование на роутер
-scp -r "$localPath\*" root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp -r "$localPath\*" root@192.168.1.1:/opt/etc/web_ui/
 ```
 
 **Вариант Б: С git-репозитория**
@@ -344,7 +344,7 @@ scp -r "$localPath\*" root@192.168.1.1:/opt/etc/bypass_keenetic_web/
 # На роутере
 cd /opt/etc
 git clone https://github.com/royfincher25-source/bypass_keenetic-web.git
-cp -r bypass_keenetic-web/src/web_ui/* /opt/etc/bypass_keenetic_web/
+cp -r bypass_keenetic-web/src/web_ui/* /opt/etc/web_ui/
 ```
 
 #### Шаг 5: Настройка конфигурации
@@ -354,7 +354,7 @@ cp -r bypass_keenetic-web/src/web_ui/* /opt/etc/bypass_keenetic_web/
 
 ```bash
 # 1. Перейдите в директорию приложения
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 
 # 2. Создайте .env из примера
 cp .env.example .env
@@ -419,7 +419,7 @@ python3 -c "import flask, jinja2, werkzeug, requests; print('OK')"
 
 ```bash
 # 1. Запуск вручную (для тестирования)
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py
 
 # Приложение запустится на порту 8080
@@ -460,7 +460,7 @@ python3 app.py
 > **2. Установка зависимостей:**
 > ```bash
 > # Вариант А: Из requirements.txt (рекомендуется)
-> cd /opt/etc/bypass_keenetic_web
+> cd /opt/etc/web_ui
 > pip3 install -r requirements.txt
 >
 > # Вариант Б: Прямая установка
@@ -479,7 +479,7 @@ python3 app.py
 > **4. Первый запуск:**
 > ```bash
 > # Запуск в фоновом режиме
-> cd /opt/etc/bypass_keenetic_web
+> cd /opt/etc/web_ui
 > nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 >
 > # Проверка процесса
@@ -548,10 +548,10 @@ python3 app.py
 > pip3 show flask
 >
 > # 3. Проверить .env
-> cat /opt/etc/bypass_keenetic_web/.env
+> cat /opt/etc/web_ui/.env
 >
 > # 4. Запустить в режиме отладки
-> cd /opt/etc/bypass_keenetic_web
+> cd /opt/etc/web_ui
 > python3 app.py
 > # Смотреть вывод в консоль
 > ```
@@ -641,10 +641,10 @@ flowchart LR
 mkdir -p /opt/backup/bypass_keenetic_web
 
 # 2. Скопируйте файлы
-cp -r /opt/etc/bypass_keenetic_web/* /opt/backup/bypass_keenetic_web/
+cp -r /opt/etc/web_ui/* /opt/backup/bypass_keenetic_web/
 
 # 3. Сохраните конфигурацию
-cp /opt/etc/bypass_keenetic_web/.env /opt/backup/bypass_keenetic_web/.env.backup
+cp /opt/etc/web_ui/.env /opt/backup/bypass_keenetic_web/.env.backup
 ```
 
 #### Шаг 2: Остановка старого приложения
@@ -671,7 +671,7 @@ rm -f /opt/etc/init.d/S99bypass_test
 
 ```bash
 # На локальном компьютере: скопируйте новую версию
-scp -r "H:\disk_e\dell\bypass_keenetic-web\src\web" root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp -r "H:\disk_e\dell\bypass_keenetic-web\src\web" root@192.168.1.1:/opt/etc/web_ui/
 ```
 
 #### Шаг 5: Восстановление конфигурации
@@ -680,10 +680,10 @@ scp -r "H:\disk_e\dell\bypass_keenetic-web\src\web" root@192.168.1.1:/opt/etc/by
 # На роутере: восстановите или создайте новую конфигурацию
 
 # Вариант А: Использовать старую конфигурацию
-cp /opt/backup/bypass_keenetic/.env.backup /opt/etc/bypass_keenetic_web/.env
+cp /opt/backup/bypass_keenetic/.env.backup /opt/etc/web_ui/.env
 
 # Вариант Б: Создать новую конфигурацию
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 cp .env.example .env
 nano .env
 ```
@@ -692,7 +692,7 @@ nano .env
 
 ```bash
 # Запустите приложение
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py &
 
 # Проверьте работу
@@ -756,13 +756,13 @@ ssh root@192.168.1.1 "tar -czf - -C /opt/etc bypass_keenetic_web" > backup.tar.g
 opkg install python3 python3-pip
 
 # 2. Создайте директорию
-mkdir -p /opt/etc/bypass_keenetic_web
+mkdir -p /opt/etc/web_ui
 
 # 3. Распакуйте архив
 tar -xzf backup.tar.gz -C /opt/etc/
 
 # 4. Установите зависимости
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 pip3 install -r requirements.txt
 
 # 5. Проверьте и обновите .env (особенно ROUTER_IP)
@@ -800,20 +800,20 @@ flowchart TD
 # Вариант А: Копирование отдельных файлов
 
 # Обновите только измененные файлы
-scp src/web_ui/app.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
-scp src/web_ui/routes.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
-scp src/web_ui/core/*.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/core/
+scp src/web_ui/app.py root@192.168.1.1:/opt/etc/web_ui/
+scp src/web_ui/routes.py root@192.168.1.1:/opt/etc/web_ui/
+scp src/web_ui/core/*.py root@192.168.1.1:/opt/etc/web_ui/core/
 
 # Обновите шаблоны
-scp -r src/web_ui/templates/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/templates/
+scp -r src/web_ui/templates/* root@192.168.1.1:/opt/etc/web_ui/templates/
 
 # Обновите стили
-scp src/web_ui/static/style.css root@192.168.1.1:/opt/etc/bypass_keenetic_web/static/
+scp src/web_ui/static/style.css root@192.168.1.1:/opt/etc/web_ui/static/
 ```
 
 ```bash
 # Вариант Б: Синхронизация всей папки
-rsync -avz --delete src/web_ui/ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+rsync -avz --delete src/web_ui/ root@192.168.1.1:/opt/etc/web_ui/
 ```
 
 ### 4.3 Автоматическое обновление через скрипт
@@ -824,7 +824,7 @@ cat > /opt/bin/update_bypass_web.sh << 'EOF'
 #!/bin/sh
 
 # Конфигурация
-LOCAL_DIR="/opt/etc/bypass_keenetic_web"
+LOCAL_DIR="/opt/etc/web_ui"
 REMOTE_USER="root"
 REMOTE_HOST="192.168.1.1"
 BACKUP_DIR="/opt/backup/bypass_web_$(date +%Y%m%d_%H%M%S)"
@@ -860,7 +860,7 @@ chmod +x /opt/bin/update_bypass_web.sh
 
 ```bash
 # На роутере: если проект уже клонирован через git
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 
 # Посмотреть текущую ветку
 git branch
@@ -879,16 +879,16 @@ python3 app.py &
 # Если что-то пошло не так: откат к предыдущей версии
 
 # Вариант А: Из бэкапа
-rm -rf /opt/etc/bypass_keenetic_web
-cp -r /opt/backup/bypass_web_YYYYMMDD_HHMMSS /opt/etc/bypass_keenetic_web
+rm -rf /opt/etc/web_ui
+cp -r /opt/backup/bypass_web_YYYYMMDD_HHMMSS /opt/etc/web_ui
 
 # Вариант Б: Через git
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 git log --oneline -10  # Посмотреть коммиты
 git checkout <коммит>  # Откатиться к коммиту
 
 # Вариант В: Из предыдущего состояния
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 git stash             # Сохранить текущие изменения
 git checkout HEAD~1  # Перейти к предыдущему коммиту
 ```
@@ -921,23 +921,23 @@ ssh -i ~/.ssh/id_rsa root@192.168.1.1
 # ===========================================
 
 # Копирование с локального компьютера на роутер (из Windows PowerShell)
-scp -r "H:\disk_e\dell\bypass_keenetic-web\src\web" root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp -r "H:\disk_e\dell\bypass_keenetic-web\src\web" root@192.168.1.1:/opt/etc/web_ui/
 
 # Копирование с роутера на локальный компьютер
-scp -r root@192.168.1.1:/opt/etc/bypass_keenetic_web "H:\disk_e\dell\bypass_keenetic-web\backup"
+scp -r root@192.168.1.1:/opt/etc/web_ui "H:\disk_e\dell\bypass_keenetic-web\backup"
 
 # Копирование файла
-scp app.py root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp app.py root@192.168.1.1:/opt/etc/web_ui/
 
 # ===========================================
 # УДАЛЕНИЕ ФАЙЛОВ
 # ===========================================
 
 # Удаление директории
-rm -rf /opt/etc/bypass_keenetic_web/
+rm -rf /opt/etc/web_ui/
 
 # Удаление файла
-rm /opt/etc/bypass_keenetic_web/app.py
+rm /opt/etc/web_ui/app.py
 
 # Удаление с подтверждением
 rm -i filename
@@ -947,29 +947,29 @@ rm -i filename
 # ===========================================
 
 # Создание директории
-mkdir -p /opt/etc/bypass_keenetic_web
+mkdir -p /opt/etc/web_ui
 
 # Создание вложенных директорий
-mkdir -p /opt/etc/bypass_keenetic_web/core/templates
+mkdir -p /opt/etc/web_ui/core/templates
 
 # ===========================================
 # ПРОСМОТР ФАЙЛОВ
 # ===========================================
 
 # Просмотр содержимого директории
-ls -la /opt/etc/bypass_keenetic_web/
+ls -la /opt/etc/web_ui/
 
 # Рекурсивный просмотр
-ls -R /opt/etc/bypass_keenetic_web/
+ls -R /opt/etc/web_ui/
 
 # Просмотр файла
-cat /opt/etc/bypass_keenetic_web/.env
+cat /opt/etc/web_ui/.env
 
 # Просмотр с постраничным выводом
-less /opt/etc/bypass_keenetic_web/app.py
+less /opt/etc/web_ui/app.py
 
 # Просмотр первых строк
-head -n 20 /opt/etc/bypass_keenetic_web/app.py
+head -n 20 /opt/etc/web_ui/app.py
 
 # Просмотр последних строк (для логов)
 tail -f /opt/var/log/web_ui.log
@@ -983,11 +983,11 @@ tail -f /opt/var/log/web_ui.log
 # ===========================================
 
 # Запуск вручную (в текущем терминале)
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py
 
 # Запуск в фоновом режиме
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 
 # Запуск через screen
@@ -1084,13 +1084,13 @@ ssh -L 8080:localhost:8080 root@192.168.1.1
 # ===========================================
 
 # Редактирование через nano
-nano /opt/etc/bypass_keenetic_web/.env
+nano /opt/etc/web_ui/.env
 
 # Сохранить: Ctrl+O, Enter
 # Выйти: Ctrl+X
 
 # Редактирование через vim
-vim /opt/etc/bypass_keenetic_web/.env
+vim /opt/etc/web_ui/.env
 # i - режим вставки
 # Esc - выход из режима вставки
 # :wq - сохранить и выйти
@@ -1100,26 +1100,26 @@ vim /opt/etc/bypass_keenetic_web/.env
 # ===========================================
 
 # Просмотр текущих переменных
-cat /opt/etc/bypass_keenetic_web/.env
+cat /opt/etc/web_ui/.env
 
 # Добавление переменной
-echo "NEW_VAR=value" >> /opt/etc/bypass_keenetic_web/.env
+echo "NEW_VAR=value" >> /opt/etc/web_ui/.env
 
 # Изменение значения
-sed -i 's/OLD_VALUE/NEW_VALUE/g' /opt/etc/bypass_keenetic_web/.env
+sed -i 's/OLD_VALUE/NEW_VALUE/g' /opt/etc/web_ui/.env
 
 # ===========================================
 # РЕЗЕРВНОЕ КОПИРОВАНИЕ
 # ===========================================
 
 # Простой бэкап
-cp /opt/etc/bypass_keenetic_web/.env /opt/etc/bypass_keenetic_web/.env.backup
+cp /opt/etc/web_ui/.env /opt/etc/web_ui/.env.backup
 
 # Бэкап с датой
-cp /opt/etc/bypass_keenetic_web/.env /opt/backup/.env.$(date +%Y%m%d)
+cp /opt/etc/web_ui/.env /opt/backup/.env.$(date +%Y%m%d)
 
 # Автоматический бэкап при обновлении
-cp -r /opt/etc/bypass_keenetic_web /opt/backup/bypass_web_$(date +%Y%m%d_%H%M%S)
+cp -r /opt/etc/web_ui /opt/backup/bypass_web_$(date +%Y%m%d_%H%M%S)
 ```
 
 ### 5.6 Логирование и отладка
@@ -1149,7 +1149,7 @@ logread | grep bypass
 # ===========================================
 
 # Запуск с выводом отладочной информации
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 DEBUG=1 python3 app.py
 
 # Запуск с подробным логированием
@@ -1167,13 +1167,13 @@ LOG_LEVEL=DEBUG python3 app.py
 chmod +x /opt/bin/update_bypass_web.sh
 
 # Изменение прав на директорию
-chmod 755 /opt/etc/bypass_keenetic_web/
+chmod 755 /opt/etc/web_ui/
 
 # Рекурсивное изменение
-chmod -R 755 /opt/etc/bypass_keenetic_web/
+chmod -R 755 /opt/etc/web_ui/
 
 # Изменение владельца
-chown -R root:root /opt/etc/bypass_keenetic_web/
+chown -R root:root /opt/etc/web_ui/
 ```
 
 ### 5.8 Управление автозапуском
@@ -1188,7 +1188,7 @@ cat > /opt/etc/init.d/S99bypass_web << 'EOF'
 #!/bin/sh
 case "$1" in
   start)
-    cd /opt/etc/bypass_keenetic_web
+    cd /opt/etc/web_ui
     python3 app.py &
     ;;
   stop)
@@ -1223,8 +1223,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/etc/bypass_keenetic_web
-ExecStart=/opt/bin/python3 /opt/etc/bypass_keenetic_web/app.py
+WorkingDirectory=/opt/etc/web_ui
+ExecStart=/opt/bin/python3 /opt/etc/web_ui/app.py
 Restart=always
 
 [Install]
@@ -1267,7 +1267,7 @@ cat > /opt/etc/init.d/S99bypass_web << 'EOF'
 case "$1" in
   start)
     echo "Starting Bypass Keenetic Web..."
-    cd /opt/etc/bypass_keenetic_web
+    cd /opt/etc/web_ui
     python3 app.py > /dev/null 2>&1 &
     echo "Bypass Keenetic Web started"
     ;;
@@ -1306,8 +1306,8 @@ nano /opt/etc/rc.local
 
 # Добавьте строки перед exit 0:
 # Запуск bypass_keenetic_web
-if [ -x /opt/etc/bypass_keenetic_web/app.py ]; then
-    cd /opt/etc/bypass_keenetic_web
+if [ -x /opt/etc/web_ui/app.py ]; then
+    cd /opt/etc/web_ui
     python3 app.py > /dev/null 2>&1 &
 fi
 ```
@@ -1352,7 +1352,7 @@ LOG_FILE="/opt/var/log/bypass_web_check.log"
 
 if ! pgrep -f "python.*app.py" > /dev/null; then
     echo "$(date): Bypass Web not running, restarting..." >> $LOG_FILE
-    cd /opt/etc/bypass_keenetic_web
+    cd /opt/etc/web_ui
     python3 app.py > /dev/null 2>&1 &
 else
     echo "$(date): Bypass Web is running" >> $LOG_FILE
@@ -1522,7 +1522,7 @@ tail -100 /opt/var/log/web_ui.log
 # ===========================================
 # ШАГ 4: ПРОВЕРЬТЕ ФАЙЛЫ
 # ===========================================
-ls -la /opt/etc/bypass_keenetic_web/
+ls -la /opt/etc/web_ui/
 
 # Должны быть: app.py, routes.py, templates/, core/, .env
 
@@ -1536,7 +1536,7 @@ python3 -c "import flask; print(flask.__version__)"
 # ===========================================
 # ШАГ 6: ТЕСТИРОВАНИЕ ВРУЧНУЮ
 # ===========================================
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 -c "from app import app; print('OK')"
 
 # Должно вывести "OK" без ошибок
@@ -1546,11 +1546,11 @@ python3 -c "from app import app; print('OK')"
 
 ```bash
 # Запуск в режиме отладки
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 FLASK_DEBUG=1 python3 app.py
 
 # Запуск с интерактивной отладкой
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 -i app.py
 
 # Тестирование маршрутов
@@ -1571,16 +1571,16 @@ curl -v http://localhost:8080/
 pkill -f python
 
 # 2. Проверьте директорию
-ls -la /opt/etc/bypass_keenetic_web/
+ls -la /opt/etc/web_ui/
 
 # 3. Восстановите из бэкапа (если есть)
 tar -xzf /opt/backup/bypass_web/backup_latest.tar.gz -C /opt/etc/
 
 # 4. Переустановите зависимости
-pip3 install --force-reinstall -r /opt/etc/bypass_keenetic_web/requirements.txt
+pip3 install --force-reinstall -r /opt/etc/web_ui/requirements.txt
 
 # 5. Запустите
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py
 ```
 
@@ -1783,11 +1783,11 @@ curl http://192.168.1.1:8080            # Доступен?
 tail -f /opt/var/log/web_ui.log    # Просмотр логов
 
 # ФАЙЛЫ
-ls -la /opt/etc/bypass_keenetic_web/   # Содержимое директории
-nano /opt/etc/bypass_keenetic_web/.env # Редактирование .env
+ls -la /opt/etc/web_ui/   # Содержимое директории
+nano /opt/etc/web_ui/.env # Редактирование .env
 
 # ОБНОВЛЕНИЕ
-scp -r src/web_ui/* root@192.168.1.1:/opt/etc/bypass_keenetic_web/  # Копирование файлов
+scp -r src/web_ui/* root@192.168.1.1:/opt/etc/web_ui/  # Копирование файлов
 
 # АВТОЗАПУСК
 /opt/etc/init.d/S99bypass_web start     # Запуск

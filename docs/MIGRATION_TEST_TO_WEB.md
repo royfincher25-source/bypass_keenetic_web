@@ -28,7 +28,7 @@ rm -f /opt/etc/init.d/S99bypass_test
 
 ```bash
 # С локального компьютера на роутер
-scp -r h:\disk_e\dell\bypass_keenetic-web\src\web\ root@192.168.1.1:/opt/etc/bypass_keenetic_web/
+scp -r h:\disk_e\dell\bypass_keenetic-web\src\web\ root@192.168.1.1:/opt/etc/web_ui/
 ```
 
 ### 2. Переименовать (опционально)
@@ -37,14 +37,14 @@ scp -r h:\disk_e\dell\bypass_keenetic-web\src\web\ root@192.168.1.1:/opt/etc/byp
 
 ```bash
 # На роутере
-mv /opt/etc/bypass_keenetic_web /opt/etc/bypass_keenetic
+mv /opt/etc/web_ui /opt/etc/bypass_keenetic
 ```
 
 ### 3. Настроить конфигурацию
 
 ```bash
 # На роутере
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 
 # Создать .env из примера
 cp .env.example .env
@@ -68,7 +68,7 @@ pip3 install -r requirements.txt
 ### 5. Запустить приложение
 
 ```bash
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py &
 ```
 
@@ -80,7 +80,7 @@ cat > /opt/etc/init.d/S99bypass_web << 'EOF'
 #!/bin/sh
 case "$1" in
   start)
-    cd /opt/etc/bypass_keenetic_web
+    cd /opt/etc/web_ui
     python3 app.py &
     ;;
   stop)
@@ -95,7 +95,7 @@ chmod +x /opt/etc/init.d/S99bypass_web
 ## Структура нового проекта
 
 ```
-/opt/etc/bypass_keenetic_web/
+/opt/etc/web_ui/
 ├── app.py              # Flask приложение
 ├── routes.py           # Маршруты
 ├── env_parser.py       # Парсер .env
@@ -136,7 +136,7 @@ netstat -tlnp | grep 8080
 pkill -f "python.*app.py"
 
 # Удалить новое
-rm -rf /opt/etc/bypass_keenetic_web/
+rm -rf /opt/etc/web_ui/
 
 # Восстановить старое (если есть бэкап)
 # scp -r backup/test/ root@192.168.1.1:/opt/etc/bypass_keenetic_test/

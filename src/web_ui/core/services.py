@@ -829,7 +829,7 @@ def get_remote_version():
     import requests
     try:
         # Unified GitHub repository configuration
-        github_repo = 'royfincher25-source/bypass_keenetic_web'
+        github_repo = 'royfincher25-source/bypass_keenetic'
         github_branch = 'main'
         url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/version.md'
         response = requests.get(url, timeout=10)

@@ -717,7 +717,7 @@ pytest test/web/test_dns_monitor.py::test_dns_monitor_singleton -v
 ### Manual Testing
 ```bash
 # 1. Start app
-cd /opt/etc/bypass_keenetic_web
+cd /opt/etc/web_ui
 python3 app.py &
 
 # 2. Check logs
