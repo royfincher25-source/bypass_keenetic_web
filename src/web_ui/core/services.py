@@ -828,12 +828,13 @@ def get_remote_version():
     """Получить удалённую версию с GitHub"""
     import requests
     try:
-        # Unified GitHub repository configuration
-        github_repo = 'royfincher25-source/bypass_keenetic'
-        github_branch = 'main'
-        url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/version.md'
+        github_repo = 'royfincher25-source/bypass_keenetic_web'
+        github_branch = 'master'
+        url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/web_ui/version.md'
         response = requests.get(url, timeout=10)
-        return response.text.strip()
+        if response.status_code == 200:
+            return response.text.strip()
+        return 'N/A'
     except Exception as e:
         logger.error(f'Error fetching remote version: {e}')
         return 'N/A'

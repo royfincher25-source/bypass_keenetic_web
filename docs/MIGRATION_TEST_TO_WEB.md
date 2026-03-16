@@ -76,7 +76,7 @@ python3 app.py &
 
 ```bash
 # Создать скрипт автозапуска
-cat > /opt/etc/init.d/S99bypass_web << 'EOF'
+cat > /opt/etc/init.d/S99web_ui << 'EOF'
 #!/bin/sh
 case "$1" in
   start)
@@ -89,7 +89,7 @@ case "$1" in
 esac
 EOF
 
-chmod +x /opt/etc/init.d/S99bypass_web
+chmod +x /opt/etc/init.d/S99web_ui
 ```
 
 ## Структура нового проекта

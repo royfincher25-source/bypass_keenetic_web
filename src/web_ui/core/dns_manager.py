@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 DNSMASQ_CONFIG = '/opt/etc/dnsmasq.conf'
 
 # Command to restart dnsmasq on Keenetic
-DNSMASQ_RESTART_CMD = ['/etc/init.d/S56dnsmasq', 'restart']
+DNSMASQ_RESTART_CMD = ['/opt/etc/init.d/S56dnsmasq', 'restart']
 
 
 def update_dnsmasq_dns(server_host: str) -> Tuple[bool, str]:

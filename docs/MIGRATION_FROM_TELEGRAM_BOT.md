@@ -223,7 +223,7 @@ http://192.168.1.1:8080
 **Создать скрипт автозапуска:**
 
 ```bash
-cat > /opt/etc/init.d/S99bypass_web << 'EOF'
+cat > /opt/etc/init.d/S99web_ui << 'EOF'
 #!/bin/sh
 case "$1" in
   start)
@@ -241,14 +241,14 @@ case "$1" in
 esac
 EOF
 
-chmod +x /opt/etc/init.d/S99bypass_web
+chmod +x /opt/etc/init.d/S99web_ui
 ```
 
 **Проверка автозапуска:**
 
 ```bash
 # Перезапустить сервис
-/opt/etc/init.d/S99bypass_web restart
+/opt/etc/init.d/S99web_ui restart
 
 # Проверить статус
 ps | grep python

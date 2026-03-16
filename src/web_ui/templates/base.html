@@ -17,22 +17,24 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">
-                <i class="bi bi-router"></i> Bypass Keenetic
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="{{ url_for('main.index') }}">
+                <i class="bi bi-shield-check fs-5"></i> 
+                <span>Bypass Keenetic</span>
             </a>
             {% if session.get('authenticated') %}
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('main.logout') }}">
-                    <i class="bi bi-box-arrow-right"></i> Выход
+                <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('main.logout') }}">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Выход</span>
                 </a>
             </div>
             {% endif %}
         </div>
     </nav>
 
-    <main class="container">
+    <main class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -47,25 +49,27 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer mt-5 py-3 bg-body-tertiary border-top">
+    <footer class="footer mt-auto py-4 border-top" style="background: linear-gradient(to right, #f8f9fa, #e9ecef);">
         <div class="container">
-            <div class="row">
-                <div class="col-12 col-md-4 text-center text-md-start">
-                    <small class="text-muted">
-                        <i class="bi bi-router"></i> Bypass Keenetic Web
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center text-md-start mb-2 mb-md-0">
+                    <small class="text-dark">
+                        <i class="bi bi-shield-check me-1"></i> 
+                        <strong>Bypass Keenetic</strong> Web
                     </small>
                 </div>
-                <div class="col-12 col-md-4 text-center">
-                    <small class="text-muted">
-                        <i class="bi bi-github"></i> 
-                        <a href="https://github.com/royfincher25-source/bypass_keenetic" target="_blank" class="text-muted text-decoration-none">
+                <div class="col-md-4 text-center mb-2 mb-md-0">
+                    <small class="text-dark">
+                        <i class="bi bi-github me-1"></i> 
+                        <a href="https://github.com/royfincher25-source/bypass_keenetic_web" target="_blank" class="text-dark text-decoration-none">
                             GitHub
                         </a>
                     </small>
                 </div>
-                <div class="col-12 col-md-4 text-center text-md-end">
-                    <small class="text-muted">
-                        <i class="bi bi-clock"></i> Версия: 1.0.0
+                <div class="col-md-4 text-center text-md-end">
+                    <small class="text-dark">
+                        <i class="bi bi-tag me-1"></i> 
+                        v1.0.0
                     </small>
                 </div>
             </div>

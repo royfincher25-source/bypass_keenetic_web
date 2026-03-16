@@ -1331,7 +1331,7 @@ chown -R root:root /opt/etc/web_ui/
 # ===========================================
 
 # Создание скрипта автозапуска
-cat > /opt/etc/init.d/S99bypass_web << 'EOF'
+cat > /opt/etc/init.d/S99web_ui << 'EOF'
 #!/bin/sh
 case "$1" in
   start)
@@ -1350,12 +1350,12 @@ esac
 EOF
 
 # Сделать исполняемым
-chmod +x /opt/etc/init.d/S99bypass_web
+chmod +x /opt/etc/init.d/S99web_ui
 
 # Управление
-/opt/etc/init.d/S99bypass_web start
-/opt/etc/init.d/S99bypass_web stop
-/opt/etc/init.d/S99bypass_web restart
+/opt/etc/init.d/S99web_ui start
+/opt/etc/init.d/S99web_ui stop
+/opt/etc/init.d/S99web_ui restart
 
 # ===========================================
 # SYSTEMD (для альтернативных прошивок)
@@ -1397,7 +1397,7 @@ flowchart TD
     A[Включение роутера] --> B[Загрузка ядра]
     B --> C[Запуск Entware]
     C --> D[Выполнение init.d скриптов]
-    D --> E{S99bypass_web существует?}
+    D --> E{S99web_ui существует?}
     E -->|Да| F[Запуск app.py]
     E -->|Нет| G[Пропуск]
     F --> H[Веб-интерфейс доступен]
@@ -1407,7 +1407,7 @@ flowchart TD
 
 ```bash
 # Создайте скрипт автозапуска
-cat > /opt/etc/init.d/S99bypass_web << 'EOF'
+cat > /opt/etc/init.d/S99web_ui << 'EOF'
 #!/bin/sh
 # Bypass Keenetic Web AutoStart
 
@@ -1438,10 +1438,10 @@ exit 0
 EOF
 
 # Сделайте скрипт исполняемым
-chmod +x /opt/etc/init.d/S99bypass_web
+chmod +x /opt/etc/init.d/S99web_ui
 
 # Проверьте работу
-/etc/init.d/S99bypass_web start
+/etc/init.d/S99web_ui start
 ps | grep app.py
 ```
 
@@ -1638,7 +1638,7 @@ chmod +x /opt/bin/backup_bypass_web.sh
 > [!error] Не работает автозапуск
 > Проверьте права на скрипт:
 > ```bash
-> chmod +x /opt/etc/init.d/S99bypass_web
+> chmod +x /opt/etc/init.d/S99web_ui
 > ```
 
 ### 7.2 Диагностика
@@ -1937,8 +1937,8 @@ nano /opt/etc/web_ui/.env # Редактирование .env
 scp -r src/web_ui/* root@192.168.1.1:/opt/etc/web_ui/  # Копирование файлов
 
 # АВТОЗАПУСК
-/opt/etc/init.d/S99bypass_web start     # Запуск
-/etc/init.d/S99bypass_web restart      # Перезапуск
+/opt/etc/init.d/S99web_ui start     # Запуск
+/etc/init.d/S99web_ui restart      # Перезапуск
 
 # РЕЗЕРВНОЕ КОПИРОВАНИЕ
 tar -czf backup.tar.gz -C /opt/etc bypass_keenetic_web  # Создание бэкапа
