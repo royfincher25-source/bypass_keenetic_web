@@ -93,12 +93,6 @@ def csrf_required(f):
     return decorated_function
 
 
-@bp.context_processor
-def inject_csrf_token():
-    """Inject CSRF token into all templates."""
-    return dict(csrf_token=get_csrf_token())
-
-
 # =============================================================================
 # ROUTES
 # =============================================================================
@@ -129,7 +123,6 @@ def login():
     if session.get('authenticated'):
         return redirect(url_for('main.index'))
 
-    # Generate CSRF token for GET requests
     if request.method == 'GET':
         get_csrf_token()
 
@@ -919,7 +912,7 @@ def service_updates_run():
         flash('⏳ Загрузка обновлений...', 'info')
 
         # GitHub repository configuration
-        github_repo = 'royfincher25-source/bypass_keenetic'
+        github_repo = 'royfincher25-source/bypass_keenetic_web'
         github_branch = 'main'
         bot_source_path = 'src/bot3'
         bot_dest_dir = '/opt/etc/bot'
@@ -967,25 +960,35 @@ def service_install():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
-        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
+        local_script_path = os.path.join(os.path.dirname(__file__), 'scripts', 'script.sh')
 
         try:
-            # Загружаем скрипт с GitHub (уменьшенный таймаут для embedded)
-            flash('⏳ Загрузка скрипта установки...', 'info')
-            response = requests.get(script_url, timeout=15)
-            if response.status_code != 200:
-                flash(f'❌ Ошибка загрузки: {response.status_code}', 'danger')
+            flash('⏳ Копирование скрипта установки...', 'info')
+
+            # Проверка наличия локального скрипта
+            if not os.path.exists(local_script_path):
+                flash('❌ Ошибка: локальный скрипт не найден', 'danger')
+                logger.error(f"Local script not found: {local_script_path}")
                 return redirect(url_for('main.service_install'))
-            
+
+            # Чтение локального скрипта
+            with open(local_script_path, 'r', encoding='utf-8') as f:
+                script_content = f.read()
+
+            # Создание директории назначения
             os.makedirs(os.path.dirname(script_path), exist_ok=True)
-            with open(script_path, 'w') as f:
-                f.write(response.text)
+
+            # Запись скрипта на роутер
+            with open(script_path, 'w', encoding='utf-8') as f:
+                f.write(script_content)
             os.chmod(script_path, 0o755)
-            flash('✅ Скрипт загружен', 'success')
-            
+
+            flash('✅ Скрипт скопирован', 'success')
+            logger.info(f"Script copied to {script_path}")
+
         except Exception as e:
-            flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
-            logger.error(f"service_install download Exception: {e}")
+            flash(f'❌ Ошибка копирования скрипта: {str(e)}', 'danger')
+            logger.error(f"service_install copy Exception: {e}")
             return redirect(url_for('main.service_install'))
         
         try:
@@ -1007,7 +1010,7 @@ def service_install():
             process.wait(timeout=600)
             
             if process.returncode == 0:
-                flash('✅ Установка bypass_keenetic завершена', 'success')
+                flash('✅ Установка bypass_keenetic_web завершена', 'success')
             else:
                 flash('❌ Ошибка установки', 'danger')
                 
@@ -1032,7 +1035,7 @@ def service_remove():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
-        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3/script.sh'
+        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/src/bot3/script.sh'
         
         if not os.path.exists(script_path):
             try:
