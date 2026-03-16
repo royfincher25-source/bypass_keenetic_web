@@ -526,6 +526,53 @@ def remove_from_bypass(filename: str):
     return render_template('bypass_remove.html', filename=filename, entries=entries)
 
 
+@bp.route('/bypass/<filename>/refresh', methods=['POST'])
+@login_required
+@csrf_required
+def refresh_bypass_ipset(filename: str):
+    """
+    Refresh ipset from bypass list (resolve domains).
+
+    Resolves all domains in the bypass list and adds their IPs to ipset.
+    Uses parallel DNS resolution for speed (100 domains in ~5 seconds).
+
+    Args:
+        filename: Name of bypass list file (without .txt extension)
+
+    Returns:
+        Redirect to view page after processing
+
+    Example:
+        POST /bypass/unblocktor/refresh
+        → Resolves domains and adds IPs to ipset
+    """
+    config = WebConfig()
+
+    # Security: sanitize filename
+    filename = secure_filename(filename)
+    if not filename:
+        flash('Неверное имя файла', 'danger')
+        return redirect(url_for('main.bypass'))
+
+    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
+
+    # Check if file exists
+    if not os.path.exists(filepath):
+        flash('Файл не найден', 'danger')
+        return redirect(url_for('main.view_bypass', filename=filename))
+
+    # Refresh ipset (resolve domains + add IPs)
+    from core.ipset_manager import refresh_ipset_from_file
+    success, msg = refresh_ipset_from_file(filepath, max_workers=10)
+
+    if success:
+        flash(f'✅ {msg}', 'success')
+    else:
+        flash(f'❌ Ошибка: {msg}', 'danger')
+
+    return redirect(url_for('main.view_bypass', filename=filename))
+
+
 @bp.route('/install')
 @login_required
 def install():

@@ -250,6 +250,32 @@ def _is_valid_entry(entry: str) -> bool:
     return bool(re.match(domain_pattern, entry))
 
 
+def refresh_ipset_from_file(filepath: str, max_workers: int = 10) -> Tuple[bool, str]:
+    """
+    Refresh ipset from bypass list file (resolve domains + add IPs).
+
+    Args:
+        filepath: Path to bypass list file
+        max_workers: Parallel workers for DNS (default: 10)
+
+    Returns:
+        Tuple of (success: bool, message: str)
+
+    Example:
+        >>> success, msg = refresh_ipset_from_file('/opt/etc/unblock/unblocktor.txt')
+        >>> if success:
+        ...     print(f"Refreshed ipset: {msg}")
+    """
+    try:
+        from .dns_resolver import resolve_domains_for_ipset
+        
+        count = resolve_domains_for_ipset(filepath, max_workers)
+        return True, f"Resolved and added {count} IPs"
+    except Exception as e:
+        logger.error(f"Refresh ipset error: {e}")
+        return False, str(e)
+
+
 def _sanitize_for_ipset(text: str) -> str:
     """
     Sanitize text for safe use in ipset commands.
@@ -312,6 +338,26 @@ def _parse_ipset_error(stderr: str, commands: List[str]) -> str:
     else:
         # Return original stderr if parsing failed
         return stderr[:200]  # Truncate long errors
+
+
+def _sanitize_for_ipset(text: str) -> str:
+    """
+    Sanitize text for safe use in ipset commands.
+
+    Removes dangerous characters that could be used for command injection.
+
+    Args:
+        text: Input text to sanitize
+
+    Returns:
+        Sanitized text safe for ipset commands
+
+    Example:
+        >>> _sanitize_for_ipset('1.1.1.1; rm -rf /')
+        '1.1.1.1'
+        >>> _sanitize_for_ipset('example.com')
+        'example.com'
+    """
     if not text:
         return ''
 
