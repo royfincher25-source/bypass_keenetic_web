@@ -13,6 +13,9 @@ if [ ! -f "$WEB_CONFIG" ]; then
     exit 1
 fi
 
+# Путь к ресурсам
+RESOURCES_DIR="/opt/etc/web_ui/resources"
+
 # Чтение URL из конфигурации
 BASE_URL=$(grep "^base_url" "$WEB_CONFIG" | awk -F'"' '{print $2}')
 WEB_URL="$BASE_URL/src/web_ui"
@@ -181,16 +184,25 @@ if [ "$1" = "-install" ]; then
     [ "$set_type" = "hash:net" ] && echo "☑️ Поддержка множества типа hash:net есть" || echo "❕Поддержка множества типа hash:net отсутствует"
 
     # Установка скрипта для маршрутизации с помощью ipset
-    curl -s -o "$IPSET_SCRIPT" "$BASE_URL/100-ipset.sh" || exit 1
-    sed -i "s/hash:net/${set_type}/g" "$IPSET_SCRIPT" && \
-    chmod 755 "$IPSET_SCRIPT" || chmod +x "$IPSET_SCRIPT"
-    "$IPSET_SCRIPT" start
-    echo "✅ Созданы файлы под множества"
+    if [ -f "$RESOURCES_DIR/scripts/100-ipset.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/100-ipset.sh" "$IPSET_SCRIPT"
+        sed -i "s/hash:net/${set_type}/g" "$IPSET_SCRIPT" && \
+        chmod 755 "$IPSET_SCRIPT" || chmod +x "$IPSET_SCRIPT"
+        "$IPSET_SCRIPT" start
+        echo "✅ Созданы файлы под множества"
+    else
+        echo "❌ Ошибка: Файл 100-ipset.sh не найден в $RESOURCES_DIR/scripts/" >&2
+        exit 1
+    fi
 
     # Создание директории и шаблонов конфигов
     mkdir -p "$TEMPLATES_DIR"
     for template in tor_template.torrc vless_template.json trojan_template.json shadowsocks_template.json; do
-        curl -s -o "$TEMPLATES_DIR/$template" "$BASE_URL/$template"
+        if [ -f "$RESOURCES_DIR/templates/$template" ]; then
+            cp "$RESOURCES_DIR/templates/$template" "$TEMPLATES_DIR/$template"
+        else
+            echo "⚠️ Шаблон $template не найден"
+        fi
     done
     echo "✅ Загружены темплейты конфигураций для Tor, Shadowsocks, Vless, Trojan"
 
@@ -212,9 +224,13 @@ if [ "$1" = "-install" ]; then
 
     # Создание unblock папки и файлов
     mkdir -p "$UNBLOCK_DIR"
-    # Загрузка списков с GitHub
-    curl -s -o "${UNBLOCK_DIR}vless.txt" "$BASE_URL/deploy/lists/unblockvless.txt"
-    curl -s -o "${UNBLOCK_DIR}tor.txt" "$BASE_URL/deploy/lists/unblocktor.txt"
+    # Копирование списков из ресурсов
+    if [ -f "$RESOURCES_DIR/lists/unblockvless.txt" ]; then
+        cp "$RESOURCES_DIR/lists/unblockvless.txt" "${UNBLOCK_DIR}vless.txt"
+    fi
+    if [ -f "$RESOURCES_DIR/lists/unblocktor.txt" ]; then
+        cp "$RESOURCES_DIR/lists/unblocktor.txt" "${UNBLOCK_DIR}tor.txt"
+    fi
     # Создание пустых файлов если их нет
     for file in \
         "$HOSTS_FILE" \
@@ -229,25 +245,45 @@ if [ "$1" = "-install" ]; then
     echo "✅ Созданы файлы под домены и ip-адреса"
 
     # Установка скриптов для заполнения множеств unblock
-    curl -s -o "$UNBLOCK_IPSET" "$BASE_URL/unblock_ipset.sh" || exit 1
-    sed -i "s/40500/${dnsovertlsport}/g" "$UNBLOCK_IPSET" && \
-    chmod 755 "$UNBLOCK_IPSET" || chmod +x "$UNBLOCK_IPSET"
-    echo "✅ Установлен скрипт для заполнения множеств unblock IP-адресами"
+    if [ -f "$RESOURCES_DIR/scripts/unblock_ipset.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/unblock_ipset.sh" "$UNBLOCK_IPSET"
+        sed -i "s/40500/${dnsovertlsport}/g" "$UNBLOCK_IPSET" && \
+        chmod 755 "$UNBLOCK_IPSET" || chmod +x "$UNBLOCK_IPSET"
+        echo "✅ Установлен скрипт для заполнения множеств unblock IP-адресами"
+    else
+        echo "❌ Ошибка: unblock_ipset.sh не найден" >&2
+        exit 1
+    fi
 
-    curl -s -o "$UNBLOCK_DNSMASQ" "$BASE_URL/unblock_dnsmasq.sh" || exit 1
-    sed -i "s/40500/${dnsovertlsport}/g" "$UNBLOCK_DNSMASQ" && \
-    chmod 755 "$UNBLOCK_DNSMASQ" || chmod +x "$UNBLOCK_DNSMASQ"
-    "$UNBLOCK_DNSMASQ"
-    echo "✅ Установлен скрипт для формирования конфигурации dnsmasq"
+    if [ -f "$RESOURCES_DIR/scripts/unblock_dnsmasq.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/unblock_dnsmasq.sh" "$UNBLOCK_DNSMASQ"
+        sed -i "s/40500/${dnsovertlsport}/g" "$UNBLOCK_DNSMASQ" && \
+        chmod 755 "$UNBLOCK_DNSMASQ" || chmod +x "$UNBLOCK_DNSMASQ"
+        "$UNBLOCK_DNSMASQ"
+        echo "✅ Установлен скрипт для формирования конфигурации dnsmasq"
+    else
+        echo "❌ Ошибка: unblock_dnsmasq.sh не найден" >&2
+        exit 1
+    fi
 
-    curl -s -o "$UNBLOCK_UPDATE" "$BASE_URL/unblock_update.sh" || exit 1
-    chmod 755 "$UNBLOCK_UPDATE" || chmod +x "$UNBLOCK_UPDATE"
-    echo "✅ Установлен скрипт обновления системы"
+    if [ -f "$RESOURCES_DIR/scripts/unblock_update.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/unblock_update.sh" "$UNBLOCK_UPDATE"
+        chmod 755 "$UNBLOCK_UPDATE" || chmod +x "$UNBLOCK_UPDATE"
+        echo "✅ Установлен скрипт обновления системы"
+    else
+        echo "❌ Ошибка: unblock_update.sh не найден" >&2
+        exit 1
+    fi
 
     # Установка скриптов инициализации
-    curl -s -o "$INIT_UNBLOCK" "$WEB_URL/S99unblock" || exit 1
-    chmod 755 "$INIT_UNBLOCK" || chmod +x "$INIT_UNBLOCK"
-    echo "✅ Установлен скрипт автоматического заполнения множества unblock"
+    if [ -f "$RESOURCES_DIR/scripts/S99unblock" ]; then
+        cp "$RESOURCES_DIR/scripts/S99unblock" "$INIT_UNBLOCK"
+        chmod 755 "$INIT_UNBLOCK" || chmod +x "$INIT_UNBLOCK"
+        echo "✅ Установлен скрипт автоматического заполнения множества unblock"
+    else
+        echo "❌ Ошибка: S99unblock не найден" >&2
+        exit 1
+    fi
 
     # =============================================================================
     # УСТАНОВКА ВЕБ-ИНТЕРФЕЙСА (вместо Telegram-бота)
@@ -368,45 +404,74 @@ EOF
     echo "✅ Дополнительные файлы загружены"
 
     # Установка скрипта перенаправления
-    curl -s -o "$REDIRECT_SCRIPT" "$BASE_URL/100-redirect.sh" || exit 1
-    sed -i -e "s/hash:net/${set_type}/g" \
-           -e "s/192.168.1.1/${lanip}/g" \
-           -e "s/1082/${localportsh}/g" \
-           -e "s/9141/${localporttor}/g" \
-           -e "s/10810/${localportvless}/g" \
-           -e "s/10829/${localporttrojan}/g" \
-           "$REDIRECT_SCRIPT" && \
-    chmod 755 "$REDIRECT_SCRIPT" || chmod +x "$REDIRECT_SCRIPT"
-    echo "✅ Установлено перенаправление пакетов"
+    if [ -f "$RESOURCES_DIR/scripts/100-redirect.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/100-redirect.sh" "$REDIRECT_SCRIPT"
+        sed -i -e "s/hash:net/${set_type}/g" \
+               -e "s/192.168.1.1/${lanip}/g" \
+               -e "s/1082/${localportsh}/g" \
+               -e "s/9141/${localporttor}/g" \
+               -e "s/10810/${localportvless}/g" \
+               -e "s/10829/${localporttrojan}/g" \
+               "$REDIRECT_SCRIPT" && \
+        chmod 755 "$REDIRECT_SCRIPT" || chmod +x "$REDIRECT_SCRIPT"
+        echo "✅ Установлено перенаправление пакетов"
+    else
+        echo "❌ Ошибка: 100-redirect.sh не найден" >&2
+        exit 1
+    fi
 
     # Установка VPN скрипта
     if [ "${keen_os_short}" = "4" ]; then
         echo "VPN для KeenOS 4+"
-        curl -s -o "$VPN_SCRIPT" "$BASE_URL/100-unblock-vpn-v4.sh" || exit 1
+        if [ -f "$RESOURCES_DIR/scripts/100-unblock-vpn-v4.sh" ]; then
+            cp "$RESOURCES_DIR/scripts/100-unblock-vpn-v4.sh" "$VPN_SCRIPT"
+            chmod 755 "$VPN_SCRIPT" || chmod +x "$VPN_SCRIPT"
+            echo "✅ Установлен скрипт проверки подключения VPN"
+        else
+            echo "❌ Ошибка: 100-unblock-vpn-v4.sh не найден" >&2
+            exit 1
+        fi
     else
         echo "VPN для KeenOS 3"
-        curl -s -o "$VPN_SCRIPT" "$BASE_URL/100-unblock-vpn.sh" || exit 1
+        if [ -f "$RESOURCES_DIR/scripts/100-unblock-vpn.sh" ]; then
+            cp "$RESOURCES_DIR/scripts/100-unblock-vpn.sh" "$VPN_SCRIPT"
+            chmod 755 "$VPN_SCRIPT" || chmod +x "$VPN_SCRIPT"
+            echo "✅ Установлен скрипт проверки подключения VPN"
+        else
+            echo "❌ Ошибка: 100-unblock-vpn.sh не найден" >&2
+            exit 1
+        fi
     fi
-    chmod 755 "$VPN_SCRIPT" || chmod +x "$VPN_SCRIPT"
-    echo "✅ Установлен скрипт проверки подключения VPN"
 
     # Настройка dnsmasq и crontab
     rm -f "$DNSMASQ_CONF"
-    curl -s -o "$DNSMASQ_CONF" "$BASE_URL/dnsmasq.conf" || exit 1
-    sed -i -e "s/192.168.1.1/${lanip}/g" -e "s/40500/${dnsovertlsport}/g" -e "s/40508/${dnsoverhttpsport}/g" "$DNSMASQ_CONF" && \
-    echo "✅ Подключен дополнительный конфигурационный файл к dnsmasq"
+    if [ -f "$RESOURCES_DIR/config/dnsmasq.conf" ]; then
+        cp "$RESOURCES_DIR/config/dnsmasq.conf" "$DNSMASQ_CONF"
+        sed -i -e "s/192.168.1.1/${lanip}/g" -e "s/40500/${dnsovertlsport}/g" -e "s/40508/${dnsoverhttpsport}/g" "$DNSMASQ_CONF" && \
+        echo "✅ Подключен дополнительный конфигурационный файл к dnsmasq"
+    else
+        echo "⚠️ dnsmasq.conf не найден"
+    fi
 
     rm -f "$CRONTAB"
-    curl -s -o "$CRONTAB" "$BASE_URL/crontab" || exit 1
-    echo "✅ Добавлены задачи в cron"
+    if [ -f "$RESOURCES_DIR/config/crontab" ]; then
+        cp "$RESOURCES_DIR/config/crontab" "$CRONTAB"
+        echo "✅ Добавлены задачи в cron"
+    else
+        echo "⚠️ crontab не найден"
+    fi
 
     "$UNBLOCK_UPDATE"
 
     # Установка скрипта для создания бэкапов
     mkdir -p "$KEENSNAP_DIR"
-    curl -s -o "$SCRIPT_BU" "$BASE_URL/deploy/backup/keensnap/keensnap.sh" || exit 1
-    chmod 755 "$SCRIPT_BU"
-    echo "✅ Установлен скрипт для создания бэкапов"
+    if [ -f "$RESOURCES_DIR/scripts/keensnap.sh" ]; then
+        cp "$RESOURCES_DIR/scripts/keensnap.sh" "$SCRIPT_BU"
+        chmod 755 "$SCRIPT_BU"
+        echo "✅ Установлен скрипт для создания бэкапов"
+    else
+        echo "⚠️ keensnap.sh не найден"
+    fi
 
     # Запуск веб-интерфейса
     echo "=== Запуск веб-интерфейса ==="

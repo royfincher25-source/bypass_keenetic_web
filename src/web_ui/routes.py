@@ -961,6 +961,7 @@ def service_install():
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
         local_script_path = os.path.join(os.path.dirname(__file__), 'scripts', 'script.sh')
+        resources_dir = os.path.join(os.path.dirname(__file__), 'resources')
 
         try:
             flash('⏳ Копирование скрипта установки...', 'info')
@@ -986,8 +987,29 @@ def service_install():
             flash('✅ Скрипт скопирован', 'success')
             logger.info(f"Script copied to {script_path}")
 
+            # Копирование ресурсов на роутер
+            if os.path.exists(resources_dir):
+                flash('⏳ Копирование ресурсов...', 'info')
+                resources_dest = '/opt/etc/web_ui/resources'
+                os.makedirs(resources_dest, exist_ok=True)
+
+                # Копирование файлов ресурсов
+                import shutil
+                for item in os.listdir(resources_dir):
+                    src_item = os.path.join(resources_dir, item)
+                    dest_item = os.path.join(resources_dest, item)
+                    if os.path.isfile(src_item):
+                        shutil.copy2(src_item, dest_item)
+                    elif os.path.isdir(src_item):
+                        if os.path.exists(dest_item):
+                            shutil.rmtree(dest_item)
+                        shutil.copytree(src_item, dest_item)
+
+                flash('✅ Ресурсы скопированы', 'success')
+                logger.info(f"Resources copied to {resources_dest}")
+
         except Exception as e:
-            flash(f'❌ Ошибка копирования скрипта: {str(e)}', 'danger')
+            flash(f'❌ Ошибка копирования: {str(e)}', 'danger')
             logger.error(f"service_install copy Exception: {e}")
             return redirect(url_for('main.service_install'))
         

@@ -1,0 +1,34 @@
+#!/bin/sh
+# S99web_ui - Скрипт автозапуска веб-интерфейса
+
+case "$1" in
+  start)
+    echo "Starting web UI..."
+    cd /opt/etc/web_ui
+    nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
+    ;;
+  stop)
+    echo "Stopping web UI..."
+    pkill -f "python.*app.py"
+    ;;
+  restart)
+    $0 stop
+    sleep 2
+    $0 start
+    ;;
+  status)
+    if pgrep -f "python.*app.py" > /dev/null; then
+      echo "Web UI is running"
+      exit 0
+    else
+      echo "Web UI is not running"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit 0
