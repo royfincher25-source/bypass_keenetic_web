@@ -24,8 +24,10 @@ from core.utils import (
     load_bypass_list,
     save_bypass_list,
     validate_bypass_entry,
-    run_unblock_update
+    run_unblock_update,
+    is_ip_address
 )
+from core.ipset_manager import bulk_add_to_ipset, ensure_ipset_exists, bulk_remove_from_ipset
 from core.services import (
     parse_vless_key, vless_config, write_json_config,
     parse_shadowsocks_key, shadowsocks_config,
@@ -404,40 +406,55 @@ def add_to_bypass(filename: str):
 
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
-        
+
         # Разбиваем на отдельные записи
         new_entries = [e.strip() for e in entries_text.split('\n') if e.strip()]
-        
+
         # Загружаем текущий список
         current_list = load_bypass_list(filepath)
-        
+
         # Добавляем новые записи с валидацией
         added_count = 0
         invalid_entries = []
-        
+        ip_entries = []  # Отдельно собираем IP для добавления в ipset
+
         for entry in new_entries:
             if entry not in current_list:
                 if validate_bypass_entry(entry):
                     current_list.append(entry)
                     added_count += 1
+                    # Если это IP адрес - добавляем в список для ipset
+                    if is_ip_address(entry):
+                        ip_entries.append(entry)
                 else:
                     invalid_entries.append(entry)
-        
+
         # Сохраняем список
         save_bypass_list(filepath, current_list)
-        
+
+        # Bulk добавление в ipset (быстро!)
+        ipset_msg = ''
+        if ip_entries:
+            # Убеждаемся что ipset существует
+            success, msg = ensure_ipset_exists('unblock')
+            if success:
+                # Bulk добавление IP
+                success, msg = bulk_add_to_ipset('unblock', ip_entries)
+                ipset_msg = f" IP в ipset: {len(ip_entries)}"
+                logger.info(f"ipset: {msg}")
+
         # Применяем изменения
         if added_count > 0:
             success, output = run_unblock_update()
             if success:
-                flash(f'✅ Успешно добавлено: {added_count} шт. Изменения применены', 'success')
+                flash(f'✅ Успешно добавлено: {added_count} шт.{ipset_msg}. Изменения применены', 'success')
             else:
                 flash(f'⚠️ Добавлено {added_count} записей, но ошибка при применении: {output}', 'warning')
         elif invalid_entries:
             flash(f'⚠️ Все записи уже в списке или невалидны. Нераспознанные: {", ".join(invalid_entries[:5])}', 'warning')
         else:
             flash('ℹ️ Все записи уже были в списке', 'info')
-        
+
         return redirect(url_for('main.view_bypass', filename=filename))
     
     # GET запрос - показываем форму
@@ -469,31 +486,39 @@ def remove_from_bypass(filename: str):
 
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
-        
+
         # Разбиваем на отдельные записи
         to_remove = [e.strip() for e in entries_text.split('\n') if e.strip()]
-        
+
         # Загружаем текущий список
         current_list = load_bypass_list(filepath)
-        
+
         # Удаляем записи, сохраняя порядок
         original_count = len(current_list)
         current_list = [item for item in current_list if item not in to_remove]
         removed_count = original_count - len(current_list)
-        
+
+        # Bulk удаление из ipset
+        ip_entries = [e for e in to_remove if is_ip_address(e) and e in current_list]
+        ipset_msg = ''
+        if ip_entries:
+            success, msg = bulk_remove_from_ipset('unblock', ip_entries)
+            ipset_msg = f" IP из ipset: {len(ip_entries)}"
+            logger.info(f"ipset: {msg}")
+
         # Сохраняем список
         save_bypass_list(filepath, current_list)
-        
+
         # Применяем изменения
         if removed_count > 0:
             success, output = run_unblock_update()
             if success:
-                flash(f'✅ Успешно удалено: {removed_count} шт. Изменения применены', 'success')
+                flash(f'✅ Успешно удалено: {removed_count} шт.{ipset_msg}. Изменения применены', 'success')
             else:
                 flash(f'⚠️ Удалено {removed_count} записей, но ошибка при применении: {output}', 'warning')
         else:
             flash('ℹ️ Ни одна запись не найдена в списке', 'info')
-        
+
         return redirect(url_for('main.view_bypass', filename=filename))
     
     # GET запрос - показываем форму

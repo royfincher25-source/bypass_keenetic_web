@@ -241,6 +241,41 @@ def validate_bypass_entry(entry: str) -> bool:
     return False
 
 
+def is_ip_address(entry: str) -> bool:
+    """
+    Check if entry is an IP address (IPv4 or IPv6).
+
+    Args:
+        entry: Entry to check
+
+    Returns:
+        True if IP address, False otherwise
+
+    Example:
+        >>> is_ip_address("192.168.1.1")
+        True
+        >>> is_ip_address("example.com")
+        False
+        >>> is_ip_address("::1")
+        True
+    """
+    entry = entry.strip()
+
+    # IPv4 check
+    parts = entry.split('.')
+    if len(parts) == 4:
+        try:
+            return all(0 <= int(p) <= 255 for p in parts)
+        except ValueError:
+            pass
+
+    # IPv6 check (simple check for colons)
+    if ':' in entry:
+        return True
+
+    return False
+
+
 # =============================================================================
 # FILE OPERATIONS
 # =============================================================================
