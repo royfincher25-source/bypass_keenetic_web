@@ -2,19 +2,23 @@
 Bypass Keenetic Web Interface - Core Utilities
 
 Memory-optimized utilities for embedded devices (128MB RAM).
-- LRU cache with 100 entry limit
+- LRU cache with 50 entry limit (reduced from 100)
 - Efficient file operations
 - Minimal memory footprint
+- Log rotation (100KB × 3 = 300KB max)
 """
 import os
 import re
 import time
 import subprocess
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import List, Tuple, Optional, Any, Dict
 
 LOG_FILE = os.environ.get('LOG_FILE', '/opt/var/log/web_ui.log')
+LOG_MAX_BYTES = 100 * 1024  # 100KB
+LOG_BACKUP_COUNT = 3  # 3 backup files = 300KB max
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,10 +30,17 @@ if LOG_FILE:
         log_dir = os.path.dirname(LOG_FILE)
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
-        file_handler = logging.FileHandler(LOG_FILE)
+        # RotatingFileHandler с ротацией для embedded-устройств
+        file_handler = RotatingFileHandler(
+            LOG_FILE,
+            maxBytes=LOG_MAX_BYTES,
+            backupCount=LOG_BACKUP_COUNT
+        )
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         logging.getLogger().addHandler(file_handler)
-    except Exception:
+        logger.info(f"Log rotation enabled: {LOG_MAX_BYTES} bytes × {LOG_BACKUP_COUNT} files")
+    except Exception as e:
+        logger.error(f"Failed to setup log rotation: {e}")
         pass
 
 logger = logging.getLogger(__name__)
@@ -41,16 +52,17 @@ logger = logging.getLogger(__name__)
 
 class Cache:
     """
-    LRU cache with TTL and memory limit (100 entries).
-    
-    Optimized for embedded devices with limited RAM.
-    
+    LRU cache with TTL and memory limit (50 entries for embedded devices).
+
+    Optimized for embedded devices with limited RAM (128MB).
+    Reduced from 100 to 50 entries to save ~15KB memory.
+
     Attributes:
         _cache: Dictionary storing cached values
         _timestamps: Dictionary storing cache timestamps
         _access_order: List tracking access order for LRU eviction
-        MAX_ENTRIES: Maximum number of cache entries (default: 100)
-    
+        MAX_ENTRIES: Maximum number of cache entries (default: 50)
+
     Example:
         >>> Cache.set("key", "value", ttl=60)
         >>> Cache.get("key")
@@ -58,11 +70,11 @@ class Cache:
         >>> Cache.is_valid("key")
         True
     """
-    
+
     _cache: Dict[str, Any] = {}
     _timestamps: Dict[str, float] = {}
     _access_order: List[str] = []
-    MAX_ENTRIES: int = 100
+    MAX_ENTRIES: int = 50  # Reduced from 100 for embedded devices
     
     @classmethod
     def set(cls, key: str, value: Any, ttl: int = 60) -> None:
@@ -150,6 +162,24 @@ class Cache:
         cls._cache.clear()
         cls._timestamps.clear()
         cls._access_order.clear()
+
+    @classmethod
+    def cleanup_expired(cls) -> int:
+        """
+        Remove expired entries from cache.
+        
+        Returns:
+            Number of entries removed
+            
+        Example:
+            >>> removed = Cache.cleanup_expired()
+            >>> print(f"Cleaned up {removed} expired entries")
+        """
+        now = time.time()
+        expired = [k for k, ts in cls._timestamps.items() if now > ts]
+        for key in expired:
+            cls._remove(key)
+        return len(expired)
 
 
 # =============================================================================

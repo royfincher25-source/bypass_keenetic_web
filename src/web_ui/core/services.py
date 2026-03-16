@@ -10,6 +10,7 @@ import json
 import base64
 import logging
 import subprocess
+import hashlib
 from urllib.parse import urlparse, unquote, parse_qs
 from typing import Dict, Any, Optional, Tuple
 
@@ -23,24 +24,26 @@ from .utils import Cache, logger
 def parse_vless_key(key: str) -> Dict[str, Any]:
     """
     Parse VLESS key with caching.
-    
+
     Format: vless://uuid@server:port?encryption=none&security=tls&sni=...#name
-    
+
     Args:
         key: VLESS key string
-    
+
     Returns:
         Dict with parsed configuration
-    
+
     Raises:
         ValueError: If key format is invalid
     """
-    cache_key = f'vless:{key}'
-    
+    # Memory optimization: use MD5 hash instead of full key as cache key
+    # Saves ~40KB RAM (full keys can be 100-500 chars each)
+    cache_key = f'vless:{hashlib.md5(key.encode()).hexdigest()}'
+
     if Cache.is_valid(cache_key):
-        logger.info(f"VLESS cache hit: {cache_key}")
+        logger.info(f"VLESS cache hit: {cache_key[:20]}...")
         return Cache.get(cache_key)
-    
+
     if not key.startswith('vless://'):
         raise ValueError("Неверный формат ключа VLESS")
     
@@ -101,8 +104,9 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
         result['spx'] = params.get('spx', [''])[0]
     
     logger.info(f"VLESS parsed successfully: server={server}, port={port}")
-    
-    Cache.set(cache_key, result, ttl=3600)
+
+    # TTL 24 hours (86400s) - VPN keys are stable
+    Cache.set(cache_key, result, ttl=86400)
     return result
 
 
@@ -235,10 +239,11 @@ def parse_shadowsocks_key(key: str) -> Dict[str, Any]:
     Raises:
         ValueError: If key format is invalid
     """
-    cache_key = f'ss:{key}'
-    
+    # Memory optimization: use MD5 hash instead of full key as cache key
+    cache_key = f'ss:{hashlib.md5(key.encode()).hexdigest()}'
+
     if Cache.is_valid(cache_key):
-        logger.info(f"Shadowsocks cache hit: {cache_key}")
+        logger.info(f"Shadowsocks cache hit: {cache_key[:20]}...")
         return Cache.get(cache_key)
     
     if not key.startswith('ss://'):
@@ -299,8 +304,9 @@ def parse_shadowsocks_key(key: str) -> Dict[str, Any]:
             'method': method,
         }
         logger.info(f"Shadowsocks OK: server={result['server']}, port={result['port']}")
-        
-        Cache.set(cache_key, result, ttl=3600)
+
+        # TTL 24 hours (86400s) - VPN keys are stable
+        Cache.set(cache_key, result, ttl=86400)
         return result
     
     # Try alternative format (manual parsing)
@@ -417,19 +423,20 @@ def parse_trojan_key(key: str) -> Dict[str, Any]:
     
     Args:
         key: Trojan key string
-    
+
     Returns:
         Dict with parsed configuration
-    
+
     Raises:
         ValueError: If key format is invalid
     """
-    cache_key = f'trojan:{key}'
-    
+    # Memory optimization: use MD5 hash instead of full key as cache key
+    cache_key = f'trojan:{hashlib.md5(key.encode()).hexdigest()}'
+
     if Cache.is_valid(cache_key):
-        logger.info(f"Trojan cache hit: {cache_key}")
+        logger.info(f"Trojan cache hit: {cache_key[:20]}...")
         return Cache.get(cache_key)
-    
+
     if not key.startswith('trojan://'):
         raise ValueError("Неверный формат ключа Trojan")
     
@@ -475,10 +482,11 @@ def parse_trojan_key(key: str) -> Dict[str, Any]:
         'type': params.get('type', ['tcp'])[0],
         'name': parsed.fragment or 'Trojan',
     }
-    
+
     logger.info(f"Trojan parsed successfully: server={server}, port={port}")
-    
-    Cache.set(cache_key, result, ttl=3600)
+
+    # TTL 24 hours (86400s) - VPN keys are stable
+    Cache.set(cache_key, result, ttl=86400)
     return result
 
 
@@ -645,7 +653,9 @@ def restart_service(service_name: str, init_script: str) -> Tuple[bool, str]:
 
 def check_service_status(init_script: str) -> str:
     """
-    Check service status.
+    Check service status with caching (30s TTL).
+    
+    Caching reduces CPU load by avoiding frequent subprocess calls.
 
     Args:
         init_script: Path to init script
@@ -653,37 +663,47 @@ def check_service_status(init_script: str) -> str:
     Returns:
         Status string
     """
+    # Cache status for 30 seconds to reduce CPU load
+    cache_key = f'status:{init_script}'
+    cached_status = Cache.get(cache_key)
+    if cached_status:
+        return cached_status
+    
     if not os.path.exists(init_script):
-        return "❌ Скрипт не найден"
+        status = "❌ Скрипт не найден"
+    else:
+        try:
+            result = subprocess.run(
+                ['sh', init_script, 'status'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
 
-    try:
-        result = subprocess.run(
-            ['sh', init_script, 'status'],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
-        if result.returncode == 0:
-            return "✅ Активен"
-        else:
-            # Проверяем вывод на наличие ключевых слов
-            output = result.stdout + result.stderr
-            if "not running" in output.lower() or "stopped" in output.lower():
-                return "❌ Не активен"
-            elif "alive" in output.lower() or "running" in output.lower():
-                return "✅ Активен"
+            if result.returncode == 0:
+                status = "✅ Активен"
             else:
-                return "❌ Не активен"
+                # Проверяем вывод на наличие ключевых слов
+                output = result.stdout + result.stderr
+                if "not running" in output.lower() or "stopped" in output.lower():
+                    status = "❌ Не активен"
+                elif "alive" in output.lower() or "running" in output.lower():
+                    status = "✅ Активен"
+                else:
+                    status = "❌ Не активен"
 
-    except subprocess.TimeoutExpired:
-        return "⏱️  Таймаут проверки"
-    except FileNotFoundError:
-        return "❌ Скрипт не найден"
-    except PermissionError:
-        return "❌ Нет прав на скрипт"
-    except Exception as e:
-        return f"❓ Ошибка: {str(e)}"
+        except subprocess.TimeoutExpired:
+            status = "⏱️  Таймаут проверки"
+        except FileNotFoundError:
+            status = "❌ Скрипт не найден"
+        except PermissionError:
+            status = "❌ Нет прав на скрипт"
+        except Exception as e:
+            status = f"❓ Ошибка: {str(e)}"
+    
+    # Cache for 30 seconds
+    Cache.set(cache_key, status, ttl=30)
+    return status
 
 
 # =============================================================================
