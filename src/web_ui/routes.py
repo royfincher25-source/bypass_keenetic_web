@@ -28,7 +28,7 @@ from core.services import (
     parse_tor_bridges, tor_config, write_tor_config,
     restart_service, check_service_status
 )
-from core.config import WebConfig
+from core.app_config import WebConfig
 
 bp = Blueprint('main', __name__, template_folder='templates', static_folder='static')
 
@@ -691,23 +691,24 @@ def service_dns_override(action):
 @csrf_required
 def service_backup():
     """
-    Create and download backup.
+    Create backup of configuration files.
 
     Requires authentication.
     """
     if request.method == 'POST':
         from core.services import create_backup
-        
+
         success, message = create_backup()
-        
+
         if success:
             flash(f'✅ {message}', 'success')
         else:
             flash(f'❌ {message}', 'danger')
-        
+
         return redirect(url_for('main.service'))
-    
-    return redirect(url_for('main.service'))
+
+    # GET - показать страницу бэкапа
+    return render_template('backup.html')
 
 
 @bp.route('/service/updates')

@@ -10,7 +10,7 @@ from functools import wraps
 from flask import Flask, session, request, abort
 from datetime import timedelta
 
-from core.config import WebConfig
+from core.app_config import WebConfig
 
 
 def csrf_token(f):
@@ -35,7 +35,7 @@ def create_app(config_class=None):
     
     Args:
         config_class: Optional configuration class to use.
-                     If None, uses WebConfig from core.config.
+                     If None, uses WebConfig from core.app_config.
     
     Returns:
         Configured Flask application instance

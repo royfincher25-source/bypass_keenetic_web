@@ -4,7 +4,7 @@
 # Базовые компоненты ядра web-приложения
 # =============================================================================
 
-from .config import WebConfig
+from .app_config import WebConfig
 from .utils import (
     validate_bypass_entry,
     load_bypass_list,
