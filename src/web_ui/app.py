@@ -36,35 +36,35 @@ app = None
 def create_app(config_class=None):
     """
     Create and configure the Flask application.
-    
+
     Args:
         config_class: Optional configuration class to use.
                      If None, uses WebConfig from core.app_config.
-    
+
     Returns:
         Configured Flask application instance
     """
     global app
     app = Flask(__name__)
-    
+
     # Генерация случайного SECRET_KEY если не задан в окружении
     secret_key = os.environ.get('SECRET_KEY')
     if not secret_key:
         secret_key = secrets.token_hex(32)
     app.config['SECRET_KEY'] = secret_key
-    
+
     # Загрузка конфигурации из WebConfig
     if config_class is None:
         config = WebConfig()
     else:
         config = config_class()
-    
+
     # Применение конфигурации из WebConfig
     app.config['WEB_HOST'] = config.web_host
     app.config['WEB_PORT'] = config.web_port
     app.config['WEB_PASSWORD'] = config.web_password
     app.config['ROUTER_IP'] = config.router_ip
-    
+
     # Конфигурация сессий
     app.config['SESSION_COOKIE_NAME'] = 'bypass_session'
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -75,6 +75,16 @@ def create_app(config_class=None):
     from routes import bp, register_routes
     app.register_blueprint(bp)
     register_routes(app)
+
+    # Добавить csrf_token в контекст шаблонов
+    @app.context_processor
+    def inject_csrf_token():
+        """Inject csrf_token into all templates"""
+        def generate_csrf_token():
+            if 'csrf_token' not in session:
+                session['csrf_token'] = secrets.token_hex(32)
+            return session['csrf_token']
+        return dict(csrf_token=generate_csrf_token)
 
     # Запуск DNS монитора в фоновом режиме
     from core.dns_monitor import DNSMonitor
