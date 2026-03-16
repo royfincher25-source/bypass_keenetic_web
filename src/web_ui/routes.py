@@ -1035,23 +1035,36 @@ def service_remove():
     """
     if request.method == 'POST':
         script_path = '/opt/root/script.sh'
-        script_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/main/src/bot3/script.sh'
-        
+        local_script_path = os.path.join(os.path.dirname(__file__), 'scripts', 'script.sh')
+
         if not os.path.exists(script_path):
             try:
-                flash('⏳ Загрузка скрипта...', 'info')
-                response = requests.get(script_url, timeout=30)
-                if response.status_code != 200:
-                    flash(f'❌ Ошибка загрузки: {response.status_code}', 'danger')
+                flash('⏳ Копирование скрипта...', 'info')
+
+                # Проверка наличия локального скрипта
+                if not os.path.exists(local_script_path):
+                    flash('❌ Ошибка: локальный скрипт не найден', 'danger')
+                    logger.error(f"Local script not found: {local_script_path}")
                     return redirect(url_for('main.service_remove'))
-                
+
+                # Чтение локального скрипта
+                with open(local_script_path, 'r', encoding='utf-8') as f:
+                    script_content = f.read()
+
+                # Создание директории назначения
                 os.makedirs(os.path.dirname(script_path), exist_ok=True)
-                with open(script_path, 'w') as f:
-                    f.write(response.text)
+
+                # Запись скрипта на роутер
+                with open(script_path, 'w', encoding='utf-8') as f:
+                    f.write(script_content)
                 os.chmod(script_path, 0o755)
+
+                flash('✅ Скрипт скопирован', 'success')
+                logger.info(f"Script copied to {script_path}")
+
             except Exception as e:
-                flash(f'❌ Ошибка загрузки скрипта: {str(e)}', 'danger')
-                logger.error(f"service_remove download Exception: {e}")
+                flash(f'❌ Ошибка копирования скрипта: {str(e)}', 'danger')
+                logger.error(f"service_remove copy Exception: {e}")
                 return redirect(url_for('main.service_remove'))
         
         try:
