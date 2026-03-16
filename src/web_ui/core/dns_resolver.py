@@ -21,6 +21,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
+from .utils import is_ip_address
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,8 @@ def resolve_single(domain: str, timeout: float = DEFAULT_TIMEOUT) -> List[str]:
 def parallel_resolve(domains: List[str], max_workers: int = MAX_WORKERS) -> Dict[str, List[str]]:
     """
     Resolve multiple domains in parallel.
+    
+    Filters out None, empty strings, and duplicates.
 
     Args:
         domains: List of domains to resolve
@@ -82,6 +85,15 @@ def parallel_resolve(domains: List[str], max_workers: int = MAX_WORKERS) -> Dict
     if not domains:
         return {}
 
+    # Filter out None, empty strings, and duplicates
+    valid_domains = list(set(
+        domain for domain in domains
+        if domain and isinstance(domain, str) and domain.strip()
+    ))
+
+    if not valid_domains:
+        return {}
+
     # Limit workers for embedded devices
     max_workers = min(max_workers, MAX_WORKERS)  # Cap at 10 for 128MB RAM
 
@@ -91,7 +103,7 @@ def parallel_resolve(domains: List[str], max_workers: int = MAX_WORKERS) -> Dict
         # Submit all tasks
         future_to_domain = {
             executor.submit(resolve_single, domain): domain
-            for domain in domains
+            for domain in valid_domains
         }
 
         # Collect results as they complete
@@ -105,7 +117,7 @@ def parallel_resolve(domains: List[str], max_workers: int = MAX_WORKERS) -> Dict
                 logger.error(f"Error resolving {domain}: {e}")
                 results[domain] = []
 
-    logger.info(f"Resolved {len(results)}/{len(domains)} domains")
+    logger.info(f"Resolved {len(results)}/{len(valid_domains)} domains")
     return results
 
 
@@ -131,70 +143,36 @@ def resolve_domains_for_ipset(filepath: str, max_workers: int = MAX_WORKERS) -> 
     entries = load_bypass_list(filepath)
 
     # Filter only domains (not IPs)
-    domains = [e for e in entries if not _is_ip_address(e)]
+    domains = [e for e in entries if not is_ip_address(e)]
 
     if not domains:
         logger.info(f"No domains to resolve in {filepath}")
         return 0
 
-    # Resolve in parallel
-    resolved = parallel_resolve(domains, max_workers)
+    # Process in batches to prevent memory issues
+    BATCH_SIZE = 500  # Process 500 domains at a time
+    total_ips_added = 0
 
-    # Collect all IPs
-    all_ips = []
-    for domain, ips in resolved.items():
-        all_ips.extend(ips)
+    for i in range(0, len(domains), BATCH_SIZE):
+        batch_domains = domains[i:i + BATCH_SIZE]
+        
+        # Resolve batch in parallel
+        resolved = parallel_resolve(batch_domains, max_workers)
+        
+        # Collect IPs from this batch
+        batch_ips = set()
+        for domain, ips in resolved.items():
+            batch_ips.update(ips)
+        
+        # Bulk add batch IPs to ipset
+        if batch_ips:
+            ensure_ipset_exists('unblock_domains')
+            success, msg = bulk_add_to_ipset('unblock_domains', list(batch_ips))
+            if success:
+                total_ips_added += len(batch_ips)
+                logger.info(f"Batch {i // BATCH_SIZE + 1}: added {len(batch_ips)} IPs")
+            else:
+                logger.error(f"Failed to add batch IPs: {msg}")
 
-    # Remove duplicates
-    all_ips = list(set(all_ips))
-
-    # Bulk add to ipset
-    if all_ips:
-        ensure_ipset_exists('unblock_domains')
-        success, msg = bulk_add_to_ipset('unblock_domains', all_ips)
-        if success:
-            logger.info(f"Added {len(all_ips)} resolved IPs to ipset")
-            return len(all_ips)
-        else:
-            logger.error(f"Failed to add IPs to ipset: {msg}")
-            return 0
-
-    return 0
-
-
-def _is_ip_address(entry: str) -> bool:
-    """
-    Check if entry is an IP address (IPv4 or IPv6).
-
-    Args:
-        entry: Entry to check
-
-    Returns:
-        True if IP address, False otherwise
-
-    Example:
-        >>> _is_ip_address('192.168.1.1')
-        True
-        >>> _is_ip_address('example.com')
-        False
-        >>> _is_ip_address('::1')
-        True
-    """
-    if not entry:
-        return False
-    
-    # IPv4 pattern
-    ipv4_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-    if re.match(ipv4_pattern, entry):
-        # Validate each octet
-        try:
-            parts = entry.split('.')
-            return all(0 <= int(p) <= 255 for p in parts)
-        except ValueError:
-            return False
-    
-    # IPv6 check (simple check for colons)
-    if ':' in entry:
-        return True
-
-    return False
+    logger.info(f"Total: added {total_ips_added} resolved IPs to ipset")
+    return total_ips_added
