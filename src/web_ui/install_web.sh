@@ -9,8 +9,8 @@
 set -e
 
 WEB_DIR="/opt/etc/web_ui"
-GITHUB_REPO="royfincher25-source/bypass_keenetic-web"
-GITHUB_BRANCH="main"
+GITHUB_REPO="royfincher25-source/bypass_keenetic_web"
+GITHUB_BRANCH="master"
 BASE_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/src/web_ui"
 
 # Цвета для вывода
