@@ -8,6 +8,7 @@
 import os
 import re
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -74,16 +75,16 @@ MAX_PORT = 65535
 class WebConfig:
     """
     Singleton класс для управления конфигурацией web-приложения.
-    
+
     Использует env_parser для загрузки .env файлов, кэширует значения
     для уменьшения количества обращений к файлу.
-    
+
     Attributes:
         web_host: Хост для web-сервера (default: 0.0.0.0)
         web_port: Порт для web-сервера (default: 8080)
         web_password: Пароль для доступа к web-интерфейсу (default: changeme)
         router_ip: IP-адрес роутера (default: 192.168.1.1)
-    
+
     Example:
         >>> config = WebConfig()
         >>> config.web_port
@@ -93,25 +94,28 @@ class WebConfig:
         >>> config.to_dict()
         {'web_host': '0.0.0.0', 'web_port': 8080, ...}
     """
-    
+
     _instance: Optional['WebConfig'] = None
     _cache: Dict[str, Any] = {}
     _loaded: bool = False
     _env_file: Optional[str] = None
-    
+    _lock: threading.Lock = threading.Lock()
+
     def __new__(cls, env_file: Optional[str] = None) -> 'WebConfig':
         """
-        Создание экземпляра (Singleton pattern).
-        
+        Создание экземпляра (Singleton pattern с thread-safe блокировкой).
+
         Args:
             env_file: Путь к .env файлу. Если None, используется .env
                      в корневой директории проекта.
-        
+
         Returns:
             Экземпляр WebConfig
         """
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                if cls._instance is None:  # Double-check locking
+                    cls._instance = super().__new__(cls)
         return cls._instance
     
     def __init__(self, env_file: Optional[str] = None):
@@ -371,25 +375,26 @@ class WebConfig:
         Очистка кэша конфигурации.
         
         Позволяет перезагрузить конфигурацию из файла.
-        
+
         Example:
             >>> config.clear_cache()
             >>> config._loaded = False  # Для принудительной перезагрузки
         """
         self._cache = {}
         self._loaded = False
-        self._instance = None
-    
+        # Не сбрасываем _instance здесь — это не имеет смысла внутри экземпляра
+
     def reload(self) -> None:
         """
         Перезагрузка конфигурации из файла.
-        
+
         Example:
             >>> config.reload()
         """
-        self.clear_cache()
-        self._load_config()
-        self._loaded = True
+        with self._lock:
+            self.clear_cache()
+            self._load_config()
+            self._loaded = True
 
 
 # =============================================================================

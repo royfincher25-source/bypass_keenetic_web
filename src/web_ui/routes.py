@@ -5,6 +5,7 @@ Routes for the web interface with session-based authentication.
 """
 from flask import Blueprint, render_template, redirect, url_for, request, session, flash, current_app
 from functools import wraps
+from werkzeug.utils import secure_filename
 import os
 import sys
 import logging
@@ -341,24 +342,26 @@ def bypass():
 def view_bypass(filename: str):
     """
     View contents of a bypass list file.
-    
+
     Args:
         filename: Name of bypass list file (without .txt extension)
-    
+
     Returns:
         Rendered bypass view page with file contents
     """
     config = WebConfig()
-    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
     
-    # Проверка безопасности имени файла
-    if not filename.isalnum() and filename not in ['unblocktor', 'unblockvless']:
+    # Security: sanitize filename
+    filename = secure_filename(filename)
+    if not filename:
         flash('Неверное имя файла', 'danger')
         return redirect(url_for('main.bypass'))
     
+    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
+
     # Загрузка списка
     entries = load_bypass_list(filepath)
-    
+
     return render_template(
         'bypass_view.html',
         filename=filename,
@@ -373,21 +376,23 @@ def view_bypass(filename: str):
 def add_to_bypass(filename: str):
     """
     Add entries to a bypass list file.
-    
+
     Args:
         filename: Name of bypass list file (without .txt extension)
-    
+
     Returns:
         Redirect to view page after processing
     """
     config = WebConfig()
-    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
     
-    # Проверка безопасности имени файла
-    if not filename.isalnum() and filename not in ['unblocktor', 'unblockvless']:
+    # Security: sanitize filename
+    filename = secure_filename(filename)
+    if not filename:
         flash('Неверное имя файла', 'danger')
         return redirect(url_for('main.bypass'))
     
+    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
+
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
         
@@ -436,21 +441,23 @@ def add_to_bypass(filename: str):
 def remove_from_bypass(filename: str):
     """
     Remove entries from a bypass list file.
-    
+
     Args:
         filename: Name of bypass list file (without .txt extension)
-    
+
     Returns:
         Redirect to view page after processing
     """
     config = WebConfig()
-    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
     
-    # Проверка безопасности имени файла
-    if not filename.isalnum() and filename not in ['unblocktor', 'unblockvless']:
+    # Security: sanitize filename
+    filename = secure_filename(filename)
+    if not filename:
         flash('Неверное имя файла', 'danger')
         return redirect(url_for('main.bypass'))
     
+    filepath = os.path.join(config.unblock_dir, f"{filename}.txt")
+
     if request.method == 'POST':
         entries_text = request.form.get('entries', '')
         
@@ -688,7 +695,6 @@ def service_dns_override(action):
 
 @bp.route('/service/backup', methods=['GET', 'POST'])
 @login_required
-@csrf_required
 def service_backup():
     """
     Create backup of configuration files.
@@ -696,6 +702,14 @@ def service_backup():
     Requires authentication.
     """
     if request.method == 'POST':
+        # CSRF check for POST requests
+        token = session.get('csrf_token')
+        form_token = request.form.get('csrf_token')
+        if not token or not form_token or token != form_token:
+            flash('Ошибка безопасности: неверный токен', 'danger')
+            logger.warning("CSRF token validation failed in service_backup")
+            return redirect(url_for('main.service'))
+
         from core.services import create_backup
 
         success, message = create_backup()
@@ -748,26 +762,44 @@ def service_updates_run():
 
     Requires authentication.
     """
-    import requests
-    
     try:
-        bot_url = 'https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic/main/src/bot3'
+        flash('⏳ Загрузка обновлений...', 'info')
+
+        # GitHub repository configuration
+        github_repo = 'royfincher25-source/bypass_keenetic'
+        github_branch = 'main'
+        bot_source_path = 'src/bot3'
+        bot_dest_dir = '/opt/etc/bot'
+
         files = ['bot_config.py', 'handlers.py', 'menu.py', 'utils.py', 'main.py']
-        
+
+        # Создаем директорию назначения
+        os.makedirs(bot_dest_dir, exist_ok=True)
+
         for filename in files:
-            url = f'{bot_url}/{filename}'
+            url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/{bot_source_path}/{filename}'
             try:
                 response = requests.get(url, timeout=30)
-                if response.status_code == 200:
-                    pass
-            except Exception as e:
+                response.raise_for_status()
+
+                filepath = os.path.join(bot_dest_dir, filename)
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+
+                logger.info(f"Updated {filename}")
+
+            except requests.exceptions.RequestException as e:
                 logger.error(f'Error downloading {filename}: {e}')
-        
+                flash(f'⚠️ Ошибка загрузки {filename}: {str(e)}', 'warning')
+            except OSError as e:
+                logger.error(f'Error writing {filename}: {e}')
+                flash(f'⚠️ Ошибка записи {filename}: {str(e)}', 'warning')
+
         flash('✅ Обновление завершено!', 'success')
     except Exception as e:
         flash(f'❌ Ошибка обновления: {str(e)}', 'danger')
-        logger.error(f"service_updates Exception: {e}")
-    
+        logger.error(f"service_updates_run Exception: {e}")
+
     return redirect(url_for('main.service_updates'))
 
 
