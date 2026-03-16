@@ -276,28 +276,6 @@ def refresh_ipset_from_file(filepath: str, max_workers: int = 10) -> Tuple[bool,
         return False, str(e)
 
 
-def _sanitize_for_ipset(text: str) -> str:
-    """
-    Sanitize text for safe use in ipset commands.
-
-    Removes dangerous characters that could be used for command injection.
-
-    Args:
-        text: Input text to sanitize
-
-    Returns:
-        Sanitized text safe for ipset commands
-
-    Example:
-        >>> _sanitize_for_ipset('1.1.1.1; rm -rf /')
-        '1.1.1.1'
-        >>> _sanitize_for_ipset('example.com')
-        'example.com'
-    """
-    # Remove dangerous characters
-    return re.sub(r'[\n\r\t;|&$`]', '', text)
-
-
 def _parse_ipset_error(stderr: str, commands: List[str]) -> str:
     """
     Parse ipset restore error output to identify failed entries.
