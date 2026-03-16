@@ -13,6 +13,9 @@ from datetime import timedelta
 
 from core.app_config import WebConfig
 
+# Создать logger для модуля
+logger = logging.getLogger(__name__)
+
 
 def csrf_token(f):
     """Decorator to require CSRF token on POST requests."""
