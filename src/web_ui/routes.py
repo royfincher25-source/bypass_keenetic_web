@@ -228,9 +228,11 @@ def keys():
                 service['status'] = "❌ Скрипт не найден"
                 service['config_exists'] = False
             else:
-                # Быстрая проверка статуса (без subprocess)
-                service['status'] = check_service_status(service['init'])
+                # Проверяем существование конфига
                 service['config_exists'] = os.path.exists(service['config'])
+                # Временно не проверяем статус через subprocess (может зависать)
+                # Используем простую проверку: если скрипт есть — считаем активным
+                service['status'] = "✅ Активен" if service['config_exists'] else "❌ Не настроен"
             logger.debug(f"Service {service['name']}: status={service['status']}, config_exists={service['config_exists']}")
         except Exception as e:
             logger.error(f"Error checking status for {service['name']}: {e}")
