@@ -145,20 +145,8 @@ class WebConfig:
             if not os.path.exists(self._env_file):
                 self._env_file = str(WEB_ROOT / '.env')
 
-        # DEBUG: Логируем путь к .env
-        print(f"DEBUG: Looking for .env at: {self._env_file}")
-        print(f"DEBUG: .env exists: {os.path.exists(self._env_file)}")
-        if os.path.exists(self._env_file):
-            print(f"DEBUG: .env content:")
-            with open(self._env_file, 'r') as f:
-                for line in f:
-                    print(f"  {line.strip()}")
-
         # Загружаем .env файл
         file_config = load_env_file(self._env_file)
-        
-        # DEBUG: Логируем загруженные значения
-        print(f"DEBUG: file_config: {file_config}")
 
         self._cache = {
             'WEB_HOST': os.environ.get('WEB_HOST', file_config.get('WEB_HOST', DEFAULT_WEB_HOST)),
@@ -167,9 +155,6 @@ class WebConfig:
             'ROUTER_IP': os.environ.get('ROUTER_IP', file_config.get('ROUTER_IP', DEFAULT_ROUTER_IP)),
             'UNBLOCK_DIR': os.environ.get('UNBLOCK_DIR', file_config.get('UNBLOCK_DIR', DEFAULT_UNBLOCK_DIR)),
         }
-        
-        # DEBUG: Логируем кэш
-        print(f"DEBUG: cache: {self._cache}")
     
     # =============================================================================
     # СВОЙСТВА
