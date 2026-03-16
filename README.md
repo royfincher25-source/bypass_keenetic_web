@@ -444,6 +444,10 @@ bypass_keenetic-web/
 │       ├── app.py              # Flask приложение (factory function)
 │       ├── routes.py           # Маршруты (Blueprint main)
 │       ├── env_parser.py       # Лёгкий парсер .env
+│       ├── scripts/
+│       │   ├── script.sh       # Скрипт установки/удаления bypass_keenetic
+│       │   ├── script.sh.md5   # MD5 хэш для проверки целостности
+│       │   └── README.md       # Документация scripts/
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── config.py       # WebConfig singleton
