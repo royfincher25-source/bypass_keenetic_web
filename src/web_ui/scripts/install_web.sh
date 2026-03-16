@@ -259,8 +259,9 @@ log_info "🚀 Запуск веб-интерфейса..."
 pkill -f "python.*app.py" 2>/dev/null || true
 sleep 1
 
-# Запустить в фоне
-nohup python3 app.py > /opt/var/log/web_ui.log 2>&1 &
+# Запустить в фоне (без nohup для совместимости)
+cd "$WEB_DIR"
+python3 app.py > /opt/var/log/web_ui.log 2>&1 &
 sleep 2
 
 # Проверка запуска
