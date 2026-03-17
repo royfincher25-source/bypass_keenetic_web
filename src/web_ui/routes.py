@@ -303,28 +303,30 @@ def key_config(service: str):
             
             # Парсинг ключа и генерация конфига
             if service == 'vless':
-                logger.debug("Parsing VLESS key")
+                logger.info("Parsing VLESS key")
                 parsed = parse_vless_key(key)
-                logger.debug("VLESS key parsed, generating config")
+                logger.info(f"VLESS key parsed: {list(parsed.keys())}")
+                logger.info("Generating VLESS config")
                 cfg = vless_config(key)
-                logger.debug(f"VLESS config generated: {cfg}")
+                logger.info(f"VLESS config generated with {len(cfg)} keys")
                 write_json_config(cfg, svc['config_path'])
             elif service == 'shadowsocks':
-                logger.debug("Parsing Shadowsocks key")
+                logger.info("Parsing Shadowsocks key")
                 parsed = parse_shadowsocks_key(key)
-                logger.debug(f"Shadowsocks key parsed: {parsed}")
-                logger.debug("Generating Shadowsocks config")
+                logger.info(f"Shadowsocks key parsed: {list(parsed.keys())}")
+                logger.info("Generating Shadowsocks config")
                 cfg = shadowsocks_config(key)
-                logger.debug(f"Shadowsocks config generated: {cfg}")
+                logger.info(f"Shadowsocks config generated with {len(cfg)} keys")
                 write_json_config(cfg, svc['config_path'])
             elif service == 'trojan':
-                logger.debug("Parsing Trojan key")
+                logger.info("Parsing Trojan key")
                 parsed = parse_trojan_key(key)
-                logger.debug("Trojan key parsed, generating config")
+                logger.info(f"Trojan key parsed: {list(parsed.keys())}")
+                logger.info("Generating Trojan config")
                 cfg = trojan_config(key)
                 write_json_config(cfg, svc['config_path'])
             elif service == 'tor':
-                logger.debug("Generating Tor config")
+                logger.info("Generating Tor config")
                 cfg = tor_config(key)
                 write_tor_config(cfg, svc['config_path'])
 
