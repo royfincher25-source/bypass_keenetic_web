@@ -517,6 +517,119 @@ def cleanup_memory() -> None:
 # SYSTEM STATS
 # =============================================================================
 
+import threading
+
+
+class MemoryManager:
+    """
+    Memory manager for embedded devices with auto-optimization.
+    
+    Monitors memory usage and automatically reduces cache/workers when low.
+    Can be enabled/disabled via toggle.
+    """
+    
+    _instance = None
+    _lock = threading.Lock()
+    
+    # Thresholds
+    LOW_MEMORY_THRESHOLD_MB = 20  # Free MB to trigger optimization
+    AGGRESSIVE_THRESHOLD_MB = 10   # Free MB for aggressive optimization
+    
+    # Settings
+    _enabled = False
+    _aggressive_mode = False
+    _original_cache_size = 30
+    
+    # Optimization levels
+    NORMAL = {'cache': 30, 'dns_interval': 60}
+    LOW = {'cache': 15, 'dns_interval': 120}
+    AGGRESSIVE = {'cache': 5, 'dns_interval': 180}
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if hasattr(self, '_initialized'):
+            return
+        self._initialized = True
+        self._monitor_thread = None
+        self._running = False
+    
+    @classmethod
+    def enable(cls) -> bool:
+        """Enable auto memory optimization"""
+        cls._enabled = True
+        cls._original_cache_size = Cache.MAX_ENTRIES
+        logger.info("Auto memory optimization enabled")
+        return True
+    
+    @classmethod
+    def disable(cls) -> bool:
+        """Disable auto memory optimization and restore defaults"""
+        cls._enabled = False
+        Cache.MAX_ENTRIES = cls._original_cache_size
+        cls._aggressive_mode = False
+        logger.info("Auto memory optimization disabled")
+        return True
+    
+    @classmethod
+    def is_enabled(cls) -> bool:
+        """Check if auto optimization is enabled"""
+        return cls._enabled
+    
+    @classmethod
+    def get_status(cls) -> dict:
+        """Get current optimization status"""
+        return {
+            'enabled': cls._enabled,
+            'aggressive': cls._aggressive_mode,
+            'current_cache': Cache.MAX_ENTRIES,
+            'original_cache': cls._original_cache_size,
+            'low_threshold_mb': cls.LOW_MEMORY_THRESHOLD_MB,
+            'aggressive_threshold_mb': cls.AGGRESSIVE_THRESHOLD_MB,
+        }
+    
+    @classmethod
+    def check_and_optimize(cls) -> tuple:
+        """
+        Check memory and optimize if needed.
+        
+        Returns:
+            Tuple of (did_optimize, level, free_mb)
+        """
+        if not cls._enabled:
+            return False, 'disabled', 0
+        
+        stats = get_memory_stats()
+        free_mb = stats.get('free_mb', 0)
+        
+        if free_mb <= cls.AGGRESSIVE_THRESHOLD_MB and not cls._aggressive_mode:
+            # Aggressive optimization
+            Cache.MAX_ENTRIES = cls.AGGRESSIVE['cache']
+            cls._aggressive_mode = True
+            logger.warning(f"Aggressive mode: cache={Cache.MAX_ENTRIES}, free={free_mb}MB")
+            return True, 'aggressive', free_mb
+        
+        elif free_mb <= cls.LOW_MEMORY_THRESHOLD_MB and not cls._aggressive_mode:
+            # Low memory optimization
+            Cache.MAX_ENTRIES = cls.LOW['cache']
+            logger.info(f"Low memory mode: cache={Cache.MAX_ENTRIES}, free={free_mb}MB")
+            return True, 'low', free_mb
+        
+        elif free_mb > cls.LOW_MEMORY_THRESHOLD_MB and cls._aggressive_mode:
+            # Restore from aggressive
+            Cache.MAX_ENTRIES = cls.NORMAL['cache']
+            cls._aggressive_mode = False
+            logger.info(f"Memory restored: cache={Cache.MAX_ENTRIES}, free={free_mb}MB")
+            return True, 'normal', free_mb
+        
+        return False, 'normal' if not cls._aggressive_mode else 'aggressive', free_mb
+
+
 def get_memory_stats() -> dict:
     """
     Get memory usage statistics for the system.

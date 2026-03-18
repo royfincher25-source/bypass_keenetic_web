@@ -1308,10 +1308,11 @@ def dns_monitor_check():
 @login_required
 def system_stats():
     """Get system memory and cache statistics"""
-    from core.utils import get_memory_stats
+    from core.utils import get_memory_stats, MemoryManager
     from core.dns_monitor import get_dns_monitor
     
     stats = get_memory_stats()
+    stats['memory_manager'] = MemoryManager.get_status()
     
     monitor = get_dns_monitor()
     stats['dns_status'] = {
@@ -1322,6 +1323,49 @@ def system_stats():
     }
     
     return jsonify(stats)
+
+
+@bp.route('/api/system/memory-manager/<action>', methods=['POST'])
+@login_required
+def memory_manager_action(action):
+    """Enable/disable auto memory optimization"""
+    from core.utils import MemoryManager
+    
+    if action == 'enable':
+        MemoryManager.enable()
+        return jsonify({'success': True, 'message': 'Авто оптимизация включена'})
+    elif action == 'disable':
+        MemoryManager.disable()
+        return jsonify({'success': True, 'message': 'Авто оптимизация выключена'})
+    elif action == 'status':
+        return jsonify(MemoryManager.get_status())
+    else:
+        return jsonify({'success': False, 'error': 'Unknown action'}), 400
+
+
+@bp.route('/api/system/optimize', methods=['POST'])
+@login_required
+def manual_optimize():
+    """Manually optimize memory by clearing cache"""
+    from core.utils import Cache, get_memory_stats, MemoryManager
+    
+    before = get_memory_stats()
+    Cache.clear()
+    after = get_memory_stats()
+    
+    MemoryManager.check_and_optimize()
+    final = MemoryManager.get_status()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Cache cleared: {before["cache_entries"]} entries. Free: {after["free_mb"]}MB',
+        'stats': {
+            'cache_cleared': before['cache_entries'],
+            'free_before': before['free_mb'],
+            'free_after': after['free_mb'],
+            'current_cache_size': final['current_cache'],
+        }
+    })
 
 
 # =============================================================================
