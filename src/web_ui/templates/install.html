@@ -67,6 +67,7 @@
 <script>
 function startInstall(event) {
     event.preventDefault();
+    showLoading('Установка bypass_keenetic...');
     document.getElementById('install-log-container').style.display = 'block';
     document.getElementById('install-log').textContent = '⏳ Запуск установки...\n';
     
@@ -80,19 +81,19 @@ function startInstall(event) {
     .then(response => response.text())
     .then(data => {
         document.getElementById('install-log').textContent += '✅ Установка завершена\n';
+        hideLoading();
     })
     .catch(error => {
         document.getElementById('install-log').textContent += '❌ Ошибка: ' + error + '\n';
+        hideLoading();
     });
-    
-    // Poll for logs
-    pollLogs();
     
     return false;
 }
 
 function startRemove(event) {
     event.preventDefault();
+    showLoading('Удаление bypass_keenetic...');
     document.getElementById('install-log-container').style.display = 'block';
     document.getElementById('install-log').textContent = '⏳ Запуск удаления...\n';
     
@@ -106,19 +107,14 @@ function startRemove(event) {
     .then(response => response.text())
     .then(data => {
         document.getElementById('install-log').textContent += '✅ Удаление завершено\n';
+        hideLoading();
     })
     .catch(error => {
         document.getElementById('install-log').textContent += '❌ Ошибка: ' + error + '\n';
+        hideLoading();
     });
     
-    // Poll for logs
-    pollLogs();
-    
     return false;
-}
-
-function pollLogs() {
-    // TODO: Реализовать polling логов через API
 }
 </script>
 {% endblock %}
