@@ -937,14 +937,47 @@ def service_dns_override(action):
     return redirect(url_for('main.service'))
 
 
+def get_backup_list():
+    """Get list of backups with size and date info"""
+    import os
+    backup_dir = '/opt/etc/web_ui/backup'
+    backups = []
+    
+    if os.path.exists(backup_dir):
+        for item in sorted(os.listdir(backup_dir), reverse=True):
+            item_path = os.path.join(backup_dir, item)
+            if os.path.isdir(item_path):
+                # Calculate size
+                total_size = 0
+                try:
+                    for dirpath, dirnames, filenames in os.walk(item_path):
+                        for f in filenames:
+                            fp = os.path.join(dirpath, f)
+                            total_size += os.path.getsize(fp)
+                except:
+                    pass
+                
+                backups.append({
+                    'name': item,
+                    'path': item_path,
+                    'size': total_size,
+                    'date': item.split('_')[0] if '_' in item else item,
+                })
+    
+    return backups
+
+
 @bp.route('/service/backup', methods=['GET', 'POST'])
 @login_required
 def service_backup():
     """
-    Create backup of configuration files.
+    Create and manage backups of configuration files.
 
     Requires authentication.
     """
+    backup_dir = '/opt/etc/web_ui/backup'
+    backups = get_backup_list()
+    
     if request.method == 'POST':
         # CSRF check for POST requests
         token = session.get('csrf_token')
@@ -952,21 +985,39 @@ def service_backup():
         if not token or not form_token or token != form_token:
             flash('Ошибка безопасности: неверный токен', 'danger')
             logger.warning("CSRF token validation failed in service_backup")
-            return redirect(url_for('main.service'))
-
-        from core.services import create_backup
-
-        success, message = create_backup()
-
-        if success:
-            flash(f'✅ {message}', 'success')
-        else:
-            flash(f'❌ {message}', 'danger')
-
-        return redirect(url_for('main.service'))
+            return redirect(url_for('main.service_backup'))
+        
+        action = request.form.get('action')
+        
+        if action == 'create':
+            from core.services import create_backup
+            success, message = create_backup()
+            if success:
+                flash(f'✅ {message}', 'success')
+            else:
+                flash(f'❌ {message}', 'danger')
+            return redirect(url_for('main.service_backup'))
+        
+        elif action == 'delete':
+            backup_name = request.form.get('backup_name')
+            backup_path = os.path.join(backup_dir, backup_name)
+            
+            if backup_name and os.path.exists(backup_path):
+                import shutil
+                try:
+                    shutil.rmtree(backup_path)
+                    flash(f'✅ Бэкап {backup_name} удалён', 'success')
+                    logger.info(f"Backup deleted: {backup_path}")
+                except Exception as e:
+                    flash(f'❌ Ошибка удаления: {e}', 'danger')
+                    logger.error(f"Backup delete error: {e}")
+            else:
+                flash(f'❌ Бэкап не найден', 'danger')
+            
+            return redirect(url_for('main.service_backup'))
 
     # GET - показать страницу бэкапа
-    return render_template('backup.html')
+    return render_template('backup.html', backups=backups)
 
 
 @bp.route('/service/updates')
