@@ -231,35 +231,38 @@ if [ "$1" = "-install" ]; then
 
     echo ""
     echo "⏳ Настройка конфигураций..."
-    # Копирование шаблонов
     mkdir -p "$TOR_TMP_DIR"
-    cp "$TEMPLATES_DIR/tor_template.torrc" "$TOR_CONFIG" 2>/dev/null && echo "  ✅ Tor config" || echo "  ⚠️ Tor config"
-    cp "$TEMPLATES_DIR/shadowsocks_template.json" "$SHADOWSOCKS_CONFIG" 2>/dev/null && echo "  ✅ Shadowsocks config" || echo "  ⚠️ Shadowsocks config"
-    cp "$TEMPLATES_DIR/trojan_template.json" "$TROJAN_CONFIG" 2>/dev/null && echo "  ✅ Trojan config" || echo "  ⚠️ Trojan config"
-    cp "$TEMPLATES_DIR/vless_template.json" "$VLESS_CONFIG" 2>/dev/null && echo "  ✅ VLESS config" || echo "  ⚠️ VLESS config"
+    
+    # Конфиги - НЕ перезаписывать если существуют (сохраняем ключи)
+    [ ! -f "$TOR_CONFIG" ] && cp "$TEMPLATES_DIR/tor_template.torrc" "$TOR_CONFIG" 2>/dev/null && echo "  ✅ Tor config created" || echo "  ℹ️ Tor config preserved"
+    [ ! -f "$SHADOWSOCKS_CONFIG" ] && cp "$TEMPLATES_DIR/shadowsocks_template.json" "$SHADOWSOCKS_CONFIG" 2>/dev/null && echo "  ✅ Shadowsocks config created" || echo "  ℹ️ Shadowsocks config preserved"
+    [ ! -f "$TROJAN_CONFIG" ] && cp "$TEMPLATES_DIR/trojan_template.json" "$TROJAN_CONFIG" 2>/dev/null && echo "  ✅ Trojan config created" || echo "  ℹ️ Trojan config preserved"
+    [ ! -f "$VLESS_CONFIG" ] && cp "$TEMPLATES_DIR/vless_template.json" "$VLESS_CONFIG" 2>/dev/null && echo "  ✅ VLESS config created" || echo "  ℹ️ VLESS config preserved"
 
-    # dnsmasq.conf
+    # dnsmasq.conf - ВСЕГДА обновляем (содержит актуальные настройки)
     curl -sL -o "$DNSMASQ_CONF" "$RESOURCES_URL/config/dnsmasq.conf" && \
         sed -i -e "s/192.168.1.1/${lanip}/g" -e "s/40500/${dnsovertlsport}/g" -e "s/40508/${dnsoverhttpsport}/g" "$DNSMASQ_CONF" && \
-        echo "  ✅ dnsmasq.conf" || echo "  ❌ dnsmasq.conf"
+        echo "  ✅ dnsmasq.conf updated" || echo "  ❌ dnsmasq.conf"
 
-    # crontab
+    # crontab - ВСЕГДА обновляем
     curl -sL -o "$CRONTAB" "$RESOURCES_URL/config/crontab" && \
-        echo "  ✅ crontab" || echo "  ❌ crontab"
+        echo "  ✅ crontab updated" || echo "  ❌ crontab"
 
     echo ""
     echo "⏳ Загрузка списков обхода..."
     mkdir -p "$UNBLOCK_DIR"
-    curl -sL -o "${UNBLOCK_DIR}vless.txt" "$RESOURCES_URL/lists/unblockvless.txt" && \
-        echo "  ✅ unblockvless.txt" || echo "  ❌ unblockvless.txt"
-    curl -sL -o "${UNBLOCK_DIR}tor.txt" "$RESOURCES_URL/lists/unblocktor.txt" && \
-        echo "  ✅ unblocktor.txt" || echo "  ❌ unblocktor.txt"
+    
+    # Списки - НЕ перезаписывать если существуют (сохраняем пользовательские данные)
+    [ ! -f "${UNBLOCK_DIR}vless.txt" ] && curl -sL -o "${UNBLOCK_DIR}vless.txt" "$RESOURCES_URL/lists/unblockvless.txt" && \
+        echo "  ✅ unblockvless.txt created" || echo "  ℹ️ unblockvless.txt preserved"
+    [ ! -f "${UNBLOCK_DIR}tor.txt" ] && curl -sL -o "${UNBLOCK_DIR}tor.txt" "$RESOURCES_URL/lists/unblocktor.txt" && \
+        echo "  ✅ unblocktor.txt created" || echo "  ℹ️ unblocktor.txt preserved"
 
-    # Пустые файлы
+    # Пустые файлы - только создать если не существуют
     for file in "${UNBLOCK_DIR}shadowsocks.txt" "${UNBLOCK_DIR}trojan.txt" "${UNBLOCK_DIR}vpn.txt"; do
-        touch "$file" && chmod 644 "$file"
+        [ ! -f "$file" ] && touch "$file" && chmod 644 "$file" && echo "  ✅ $(basename $file) created"
     done
-    echo "  ✅ Пустые файлы списков"
+    echo "  ℹ️ Existing lists preserved"
 
     echo ""
     echo "⏳ Загрузка дополнительных файлов..."
