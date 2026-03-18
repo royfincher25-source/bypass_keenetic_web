@@ -1085,6 +1085,23 @@ def service_install():
             flash('✅ Скрипт скопирован', 'success')
             logger.info(f"Script copied to {script_path}")
 
+            # Бэкап текущей версии перед обновлением
+            import shutil
+            from datetime import datetime
+            backup_dir = '/opt/etc/web_ui/backup'
+            backup_subdir = os.path.join(backup_dir, datetime.now().strftime('%Y%m%d_%H%M%S'))
+            web_ui_dir = '/opt/etc/web_ui'
+            
+            if os.path.exists(web_ui_dir):
+                try:
+                    os.makedirs(backup_dir, exist_ok=True)
+                    shutil.copytree(web_ui_dir, backup_subdir)
+                    flash(f'💾 Бэкап создан: {backup_subdir}', 'info')
+                    logger.info(f"Backup created: {backup_subdir}")
+                except Exception as e:
+                    flash(f'⚠️ Бэкап не создан: {e}', 'warning')
+                    logger.warning(f"Backup failed: {e}")
+
             # Копирование ресурсов на роутер
             if os.path.exists(resources_dir):
                 flash('⏳ Копирование ресурсов...', 'info')
@@ -1092,7 +1109,6 @@ def service_install():
                 os.makedirs(resources_dest, exist_ok=True)
 
                 # Копирование файлов ресурсов
-                import shutil
                 for item in os.listdir(resources_dir):
                     src_item = os.path.join(resources_dir, item)
                     dest_item = os.path.join(resources_dest, item)
