@@ -115,10 +115,20 @@ if [ -z "$table" ]; then
     # Получение локального IP
     local_ip=$(ip -4 addr show br0 | awk '/inet /{print $2}' | cut -d/ -f1 | grep -E '^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)' | head -n1)
     
-    # Проверка ipset
+    # Проверка ipset (IPv4)
     for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
         if ipset list "$ipset_name" -n 2>/dev/null | grep -q "^${ipset_name}$"; then
             count=$(ipset list "$ipset_name" 2>/dev/null | grep -c "^[0-9]" || echo 0)
+            echo "  ✅ $ipset_name: $count записей"
+        else
+            echo "  ⚠️  $ipset_name: не создан"
+        fi
+    done
+    
+    # Проверка ipset (IPv6)
+    for ipset_name in unblocksh6 unblocktor6 unblockvless6 unblocktroj6; do
+        if ipset list "$ipset_name" -n 2>/dev/null | grep -q "^${ipset_name}$"; then
+            count=$(ipset list "$ipset_name" 2>/dev/null | grep -c "^[0-9a-f]" || echo 0)
             echo "  ✅ $ipset_name: $count записей"
         else
             echo "  ⚠️  $ipset_name: не создан"
