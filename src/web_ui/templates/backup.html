@@ -66,7 +66,7 @@
                     {% for backup in backups %}
                     <tr>
                         <td>
-                            <code>{{ backup.name.split('_')[0] if '_' in backup.name else backup.name }}</code>
+                            <code>{{ backup.date }}{% if backup.time %} {{ backup.time }}{% endif %}</code>
                         </td>
                         <td>{{ backup.name }}</td>
                         <td>

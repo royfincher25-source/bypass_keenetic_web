@@ -940,29 +940,30 @@ def service_dns_override(action):
 def get_backup_list():
     """Get list of backups with size and date info"""
     import os
-    backup_dir = '/opt/etc/web_ui/backup'
+    import re
+    backup_dir = '/opt/root/backup'
     backups = []
     
     if os.path.exists(backup_dir):
         for item in sorted(os.listdir(backup_dir), reverse=True):
-            item_path = os.path.join(backup_dir, item)
-            if os.path.isdir(item_path):
-                # Calculate size
-                total_size = 0
+            if item.startswith('backup_') and item.endswith('.tar.gz'):
+                item_path = os.path.join(backup_dir, item)
                 try:
-                    for dirpath, dirnames, filenames in os.walk(item_path):
-                        for f in filenames:
-                            fp = os.path.join(dirpath, f)
-                            total_size += os.path.getsize(fp)
+                    size = os.path.getsize(item_path)
+                    # Extract date from filename: backup_YYYYMMDD_HHMMSS.tar.gz
+                    match = re.match(r'backup_(\d{8})_(\d{6})\.tar\.gz', item)
+                    date_str = match.group(1) if match else item
+                    time_str = match.group(2) if match else ''
+                    
+                    backups.append({
+                        'name': item,
+                        'path': item_path,
+                        'size': size,
+                        'date': f"{date_str[6:8]}.{date_str[4:6]}.{date_str[0:4]}",
+                        'time': f"{time_str[0:2]}:{time_str[2:4]}" if time_str else '',
+                    })
                 except:
                     pass
-                
-                backups.append({
-                    'name': item,
-                    'path': item_path,
-                    'size': total_size,
-                    'date': item.split('_')[0] if '_' in item else item,
-                })
     
     return backups
 
@@ -1000,12 +1001,12 @@ def service_backup():
         
         elif action == 'delete':
             backup_name = request.form.get('backup_name')
-            backup_path = os.path.join(backup_dir, backup_name)
+            backup_path = os.path.join('/opt/root/backup', backup_name)
             
             if backup_name and os.path.exists(backup_path):
                 import shutil
                 try:
-                    shutil.rmtree(backup_path)
+                    os.remove(backup_path)
                     flash(f'✅ Бэкап {backup_name} удалён', 'success')
                     logger.info(f"Backup deleted: {backup_path}")
                 except Exception as e:
