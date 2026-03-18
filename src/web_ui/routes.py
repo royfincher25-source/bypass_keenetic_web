@@ -1166,11 +1166,35 @@ def service_updates_run():
                 logger.error(f'Error writing {dest_path}: {e}')
                 error_count += 1
         
-        # Restart web UI
+        # Apply updated scripts
         try:
-            subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=10)
+            # Run bypass update scripts
+            if os.path.exists('/opt/bin/unblock_update.sh'):
+                subprocess.run(['/opt/bin/unblock_update.sh'], timeout=30)
+                logger.info("Ran unblock_update.sh")
+            
+            if os.path.exists('/opt/bin/unblock_dnsmasq.sh'):
+                subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=30)
+                logger.info("Ran unblock_dnsmasq.sh")
+            
+            # Restart related services
+            if os.path.exists('/opt/etc/init.d/S99unblock'):
+                subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], timeout=30)
+                logger.info("Restarted S99unblock")
+            
+            if os.path.exists('/opt/etc/init.d/S56dnsmasq'):
+                subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], timeout=30)
+                logger.info("Restarted S56dnsmasq")
+            
+            # Restart web UI
+            if os.path.exists('/opt/etc/init.d/S99web_ui'):
+                subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=10)
+                logger.info("Restarted S99web_ui")
+                
+        except subprocess.TimeoutExpired:
+            logger.warning("Script execution timeout")
         except Exception as e:
-            logger.warning(f"Failed to restart web_ui: {e}")
+            logger.warning(f"Failed to run update scripts: {e}")
         
         if error_count == 0:
             flash(f'✅ Обновление завершено! Обновлено файлов: {updated_count}', 'success')
