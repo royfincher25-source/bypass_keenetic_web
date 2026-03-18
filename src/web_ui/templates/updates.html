@@ -18,7 +18,7 @@
         
         {% if need_update %}
             <div class="alert alert-warning">
-                Доступна новая версия! Рекомендуется обновить.
+                <i class="bi bi-exclamation-triangle"></i> Доступна новая версия! Рекомендуется обновить.
             </div>
             <form method="POST" action="{{ url_for('main.service_updates_run') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -28,9 +28,43 @@
             </form>
         {% else %}
             <div class="alert alert-success">
-                У вас установлена последняя версия.
+                <i class="bi bi-check-circle"></i> У вас установлена последняя версия.
             </div>
         {% endif %}
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-info-circle"></i> Как работает обновление</h5>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-success"><i class="bi bi-check-circle"></i> Будет обновлено:</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-folder"></i> /opt/etc/web_ui (код веб-интерфейса)</li>
+                    <li><i class="bi bi-folder"></i> /opt/etc/init.d (init скрипты)</li>
+                    <li><i class="bi bi-folder"></i> /opt/etc/ndm (системные скрипты)</li>
+                    <li><i class="bi bi-folder"></i> /opt/bin (скрипты обхода)</li>
+                    <li><i class="bi bi-file-text"></i> /opt/etc/dnsmasq.conf</li>
+                    <li><i class="bi bi-file-text"></i> /opt/root/script.sh</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-warning"><i class="bi bi-shield-lock"></i> Сохраняется без изменений:</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-key"></i> /opt/etc/xray (VLESS ключи)</li>
+                    <li><i class="bi bi-key"></i> /opt/etc/tor (Tor настройки)</li>
+                    <li><i class="bi bi-key"></i> /opt/etc/trojan (Trojan настройки)</li>
+                    <li><i class="bi bi-key"></i> /opt/etc/shadowsocks.json</li>
+                    <li><i class="bi bi-list"></i> /opt/etc/unblock/*.txt (списки обхода)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3 mb-0">
+            <i class="bi bi-download"></i> Перед обновлением автоматически создаётся резервная копия в /opt/root/backup/
+        </div>
     </div>
 </div>
 {% endblock %}

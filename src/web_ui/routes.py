@@ -1053,44 +1053,130 @@ def service_updates():
 @csrf_required
 def service_updates_run():
     """
-    Run update process.
-
+    Smart update process - updates only code files, preserves user data.
+    
+    Files that WILL be updated (code):
+    - /opt/etc/web_ui/ (web interface code)
+    - /opt/etc/init.d/ (init scripts)
+    - /opt/etc/ndm/ (system scripts)
+    - /opt/bin/ (bypass scripts)
+    - /opt/etc/dnsmasq.conf
+    - /opt/etc/crontab
+    - /opt/root/script.sh
+    
+    Files that will be PRESERVED (user data):
+    - /opt/etc/xray/ (VLESS keys)
+    - /opt/etc/tor/ (Tor settings)
+    - /opt/etc/trojan/ (Trojan settings)
+    - /opt/etc/shadowsocks.json (Shadowsocks keys)
+    - /opt/etc/unblock/*.txt (bypass lists)
+    
     Requires authentication.
     """
+    from datetime import datetime
+    import shutil
+    
     try:
+        flash('⏳ Создание резервной копии...', 'info')
+        
+        # Create backup before update
+        backup_dir = '/opt/root/backup'
+        os.makedirs(backup_dir, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = f'{backup_dir}/update_backup_{timestamp}.tar.gz'
+        
+        files_to_backup = [
+            '/opt/etc/web_ui',
+            '/opt/etc/xray',
+            '/opt/etc/tor',
+            '/opt/etc/unblock',
+            '/opt/etc/shadowsocks.json',
+            '/opt/etc/trojan',
+        ]
+        existing_files = [f for f in files_to_backup if os.path.exists(f)]
+        
+        if existing_files:
+            import tarfile
+            with tarfile.open(backup_file, 'w:gz') as tar:
+                for f in existing_files:
+                    tar.add(f, arcname=os.path.basename(f))
+            flash(f'💾 Бэкап сохранён: {backup_file}', 'info')
+        
         flash('⏳ Загрузка обновлений...', 'info')
-
-        # GitHub repository configuration
+        
         github_repo = 'royfincher25-source/bypass_keenetic_web'
         github_branch = 'main'
-        bot_source_path = 'src/bot3'
-        bot_dest_dir = '/opt/etc/bot'
-
-        files = ['bot_config.py', 'handlers.py', 'menu.py', 'utils.py', 'main.py']
-
-        # Создаем директорию назначения
-        os.makedirs(bot_dest_dir, exist_ok=True)
-
-        for filename in files:
-            url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/{bot_source_path}/{filename}'
+        
+        # Files to update (code only, not user data)
+        files_to_update = {
+            # Web UI core files
+            'web_ui/routes.py': '/opt/etc/web_ui/routes.py',
+            'web_ui/app.py': '/opt/etc/web_ui/app.py',
+            'web_ui/core/utils.py': '/opt/etc/web_ui/core/utils.py',
+            'web_ui/core/services.py': '/opt/etc/web_ui/core/services.py',
+            'web_ui/core/dns_monitor.py': '/opt/etc/web_ui/core/dns_monitor.py',
+            'web_ui/core/ipset_manager.py': '/opt/etc/web_ui/core/ipset_manager.py',
+            'web_ui/core/app_config.py': '/opt/etc/web_ui/core/app_config.py',
+            'web_ui/core/web_config.py': '/opt/etc/web_ui/core/web_config.py',
+            'web_ui/core/list_catalog.py': '/opt/etc/web_ui/core/list_catalog.py',
+            
+            # Init scripts
+            'web_ui/resources/scripts/S99unblock': '/opt/etc/init.d/S99unblock',
+            'web_ui/resources/scripts/S99web_ui': '/opt/etc/init.d/S99web_ui',
+            
+            # NDM scripts
+            'web_ui/resources/scripts/100-redirect.sh': '/opt/etc/ndm/netfilter.d/100-redirect.sh',
+            'web_ui/resources/scripts/100-unblock-vpn.sh': '/opt/etc/ndm/ifstatechanged.d/100-unblock-vpn.sh',
+            'web_ui/resources/scripts/100-ipset.sh': '/opt/etc/ndm/fs.d/100-ipset.sh',
+            
+            # Bypass scripts
+            'web_ui/resources/scripts/unblock_ipset.sh': '/opt/bin/unblock_ipset.sh',
+            'web_ui/resources/scripts/unblock_dnsmasq.sh': '/opt/bin/unblock_dnsmasq.sh',
+            'web_ui/resources/scripts/unblock_update.sh': '/opt/bin/unblock_update.sh',
+            
+            # Config files
+            'web_ui/resources/config/dnsmasq.conf': '/opt/etc/dnsmasq.conf',
+            'web_ui/resources/config/crontab': '/opt/etc/crontab',
+            
+            # Main script
+            'web_ui/scripts/script.sh': '/opt/root/script.sh',
+        }
+        
+        updated_count = 0
+        error_count = 0
+        
+        for source_path, dest_path in files_to_update.items():
+            url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/{source_path}'
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
-
-                filepath = os.path.join(bot_dest_dir, filename)
-                with open(filepath, 'w', encoding='utf-8') as f:
+                
+                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                with open(dest_path, 'w', encoding='utf-8') as f:
                     f.write(response.text)
-
-                logger.info(f"Updated {filename}")
-
+                
+                os.chmod(dest_path, 0o755 if dest_path.endswith('.sh') else 0o644)
+                logger.info(f"Updated {dest_path}")
+                updated_count += 1
+                
             except requests.exceptions.RequestException as e:
-                logger.error(f'Error downloading {filename}: {e}')
-                flash(f'⚠️ Ошибка загрузки {filename}: {str(e)}', 'warning')
+                logger.error(f'Error downloading {source_path}: {e}')
+                error_count += 1
             except OSError as e:
-                logger.error(f'Error writing {filename}: {e}')
-                flash(f'⚠️ Ошибка записи {filename}: {str(e)}', 'warning')
-
-        flash('✅ Обновление завершено!', 'success')
+                logger.error(f'Error writing {dest_path}: {e}')
+                error_count += 1
+        
+        # Restart web UI
+        try:
+            subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=10)
+        except Exception as e:
+            logger.warning(f"Failed to restart web_ui: {e}")
+        
+        if error_count == 0:
+            flash(f'✅ Обновление завершено! Обновлено файлов: {updated_count}', 'success')
+        else:
+            flash(f'⚠️ Обновлено: {updated_count}, ошибок: {error_count}', 'warning')
+            
     except Exception as e:
         flash(f'❌ Ошибка обновления: {str(e)}', 'danger')
         logger.error(f"service_updates_run Exception: {e}")
