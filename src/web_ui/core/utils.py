@@ -37,11 +37,12 @@ if LOG_FILE:
         file_handler = RotatingFileHandler(
             LOG_FILE,
             maxBytes=LOG_MAX_BYTES,
-            backupCount=LOG_BACKUP_COUNT
+            backupCount=LOG_BACKUP_COUNT,
+            encoding='utf-8'  # Явно указываем UTF-8
         )
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         logging.getLogger().addHandler(file_handler)
-        logger.info(f"Log rotation enabled: {LOG_MAX_BYTES} bytes × {LOG_BACKUP_COUNT} files")
+        logger.info(f"Log rotation enabled: {LOG_MAX_BYTES} bytes x {LOG_BACKUP_COUNT} files")
     except Exception as e:
         logger.error(f"Failed to setup log rotation: {e}")
         pass
@@ -81,7 +82,7 @@ class Cache:
     _timestamps: Dict[str, float] = {}
     _access_order: List[str] = []
     _lock = threading.Lock()  # Thread safety for concurrent access
-    MAX_ENTRIES: int = 50  # Reduced from 100 for embedded devices
+    MAX_ENTRIES: int = 30  # Оптимизировано для KN-1212 (128MB RAM)
     
     @classmethod
     def set(cls, key: str, value: Any, ttl: int = 60) -> None:
@@ -119,7 +120,13 @@ class Cache:
             Cached value or default
         """
         with cls._lock:
-            if not cls.is_valid(key):
+            # Check if exists and not expired (inline to avoid reentrant lock)
+            if key not in cls._cache:
+                return default
+            
+            if time.time() > cls._timestamps.get(key, 0):
+                # Expired - remove
+                cls._remove(key)
                 return default
 
             # Update access order
@@ -402,24 +409,27 @@ def save_bypass_list(filepath: str, sites: List[str]) -> None:
 def get_script_path(script_name: str) -> Optional[str]:
     """
     Get path to deployment script.
-    
+
     Searches in multiple locations:
-    1. /opt/etc/unblock/ (router production)
-    2. deploy/router/ (development)
-    3. Current directory
-    
+    1. /opt/bin/ (router production)
+    2. /opt/etc/unblock/ (router production)
+    3. /opt/etc/ndm/ (router production)
+    4. deploy/router/ (development)
+    5. Current directory
+
     Args:
         script_name: Name of script (e.g., 'unblock_update.sh')
-    
+
     Returns:
         Full path to script or None if not found
     """
     # Router production paths
     possible_paths = [
+        f"/opt/bin/{script_name}",
         f"/opt/etc/unblock/{script_name}",
         f"/opt/etc/ndm/{script_name}",
     ]
-    
+
     # Development paths (relative to project root)
     try:
         project_root = Path(__file__).parent.parent.parent
@@ -430,15 +440,15 @@ def get_script_path(script_name: str) -> Optional[str]:
         possible_paths.extend(str(p) for p in dev_paths)
     except Exception:
         pass
-    
+
     # Current directory
     possible_paths.append(script_name)
-    
+
     # Find first existing path
     for path in possible_paths:
         if os.path.exists(path):
             return path
-    
+
     return None
 
 
