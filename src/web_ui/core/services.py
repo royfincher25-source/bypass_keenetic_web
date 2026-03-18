@@ -812,7 +812,7 @@ def write_tor_config(config: Dict[str, Any], filepath: str) -> None:
 
 def create_backup(backup_type='full'):
     """
-    Create backup of system files.
+    Create backup of all bypass_keenetic files.
     
     Args:
         backup_type: 'full' or 'custom'
@@ -836,6 +836,13 @@ def create_backup(backup_type='full'):
             '/opt/etc/xray',
             '/opt/etc/tor',
             '/opt/etc/unblock',
+            '/opt/bin',
+            '/opt/etc/dnsmasq.conf',
+            '/opt/etc/crontab',
+            '/opt/etc/shadowsocks.json',
+            '/opt/etc/trojan',
+            '/opt/etc/ndm',
+            '/opt/etc/init.d',
             '/opt/root/script.sh',
         ]
         
@@ -848,7 +855,10 @@ def create_backup(backup_type='full'):
             for f in existing_files:
                 tar.add(f, arcname=os.path.basename(f))
         
-        return True, f'Бэкап создан: {backup_file}'
+        backup_size = os.path.getsize(backup_file)
+        size_mb = backup_size / 1024 / 1024
+        
+        return True, f'Бэкап создан: {backup_file} ({size_mb:.1f} МБ, {len(existing_files)} объектов)'
     
     except Exception as e:
         logger.error(f'Backup error: {e}')
