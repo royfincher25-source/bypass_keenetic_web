@@ -1,7 +1,23 @@
 #!/bin/sh
+# 100-redirect.sh - Настройка перенаправления трафика
+# Вызывается из системы Keenetic (с переменными $type и $table) или вручную
 
+# Выход для IPv6
 [ "$type" = "ip6tables" ] && exit 0
-[ "$table" != "mangle" ] && [ "$table" != "nat" ] && exit 0
+
+# Ensure all required ipsets exist
+for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
+    ipset create "$ipset_name" hash:net -exist 2>/dev/null
+done
+echo "IPsets ready"
+
+# При ручном запуске (без переменных) — выполняем настройку
+if [ -z "$table" ]; then
+    # Ручной запуск — применяем правила для NAT
+    :
+elif [ "$table" != "mangle" ] && [ "$table" != "nat" ]; then
+    exit 0
+fi
 
 ip4t() {
     if ! iptables -C "$@" &>/dev/null; then
@@ -85,6 +101,84 @@ if ls -d /opt/etc/unblock/vpn-*.txt >/dev/null 2>&1; then
             fi
         fi
     done
+fi
+
+# =============================================================================
+# ПРИМЕНЕНИЕ ПРАВИЛ ПРИ РУЧНОМ ЗАПУСКЕ
+# =============================================================================
+# Если скрипт запущен вручную (без переменных $type и $table),
+# применяем правила перенаправления трафика
+
+if [ -z "$table" ]; then
+    echo "Применение правил перенаправления трафика..."
+    
+    # Получение локального IP
+    local_ip=$(ip -4 addr show br0 | awk '/inet /{print $2}' | cut -d/ -f1 | grep -E '^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)' | head -n1)
+    
+    # Проверка ipset
+    for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
+        if ipset list "$ipset_name" -n 2>/dev/null | grep -q "^${ipset_name}$"; then
+            count=$(ipset list "$ipset_name" 2>/dev/null | grep -c "^[0-9]" || echo 0)
+            echo "  ✅ $ipset_name: $count записей"
+        else
+            echo "  ⚠️  $ipset_name: не создан"
+        fi
+    done
+    
+    # Применение правил для Shadowsocks
+    echo "  → Добавление правил для Shadowsocks (порт 1082)..."
+    iptables -I PREROUTING -w -t nat -p tcp -m set --match-set unblocksh dst -j REDIRECT --to-ports 1082 2>/dev/null && \
+        echo "    ✅ TCP правило добавлено" || echo "    ⚠️  TCP правило не добавлено"
+    iptables -I PREROUTING -w -t nat -p udp -m set --match-set unblocksh dst -j REDIRECT --to-ports 1082 2>/dev/null && \
+        echo "    ✅ UDP правило добавлено" || echo "    ⚠️  UDP правило не добавлено"
+    
+    # Применение правил для Tor
+    echo "  → Добавление правил для Tor (порт 9141)..."
+    iptables -I PREROUTING -w -t nat -p tcp -m set --match-set unblocktor dst -j REDIRECT --to-ports 9141 2>/dev/null && \
+        echo "    ✅ TCP правило добавлено" || echo "    ⚠️  TCP правило не добавлено"
+    iptables -I PREROUTING -w -t nat -p udp -m set --match-set unblocktor dst -j REDIRECT --to-ports 9141 2>/dev/null && \
+        echo "    ✅ UDP правило добавлено" || echo "    ⚠️  UDP правило не добавлено"
+    
+    # Применение правил для VLESS
+    echo "  → Добавление правил для VLESS (порт 10810)..."
+    iptables -I PREROUTING -w -t nat -p tcp -m set --match-set unblockvless dst -j REDIRECT --to-ports 10810 2>/dev/null && \
+        echo "    ✅ TCP правило добавлено" || echo "    ⚠️  TCP правило не добавлено"
+    iptables -I PREROUTING -w -t nat -p udp -m set --match-set unblockvless dst -j REDIRECT --to-ports 10810 2>/dev/null && \
+        echo "    ✅ UDP правило добавлено" || echo "    ⚠️  UDP правило не добавлено"
+    
+    # Применение правил для Trojan
+    echo "  → Добавление правил для Trojan (порт 10829)..."
+    iptables -I PREROUTING -w -t nat -p tcp -m set --match-set unblocktroj dst -j REDIRECT --to-ports 10829 2>/dev/null && \
+        echo "    ✅ TCP правило добавлено" || echo "    ⚠️  TCP правило не добавлено"
+    iptables -I PREROUTING -w -t nat -p udp -m set --match-set unblocktroj dst -j REDIRECT --to-ports 10829 2>/dev/null && \
+        echo "    ✅ UDP правило добавлено" || echo "    ⚠️  UDP правило не добавлено"
+    
+    # =============================================================================
+    # IPv6 ПРАВИЛА
+    # =============================================================================
+    echo ""
+    echo "🔥 Применение IPv6 правил..."
+    
+    # Создание IPv6 ipset
+    ipset create unblocksh6 hash:net family inet6 -exist 2>/dev/null
+    ipset create unblocktor6 hash:net family inet6 -exist 2>/dev/null
+    ipset create unblockvless6 hash:net family inet6 -exist 2>/dev/null
+    ipset create unblocktroj6 hash:net family inet6 -exist 2>/dev/null
+    
+    # Добавление IPv6 диапазонов для популярных сервисов
+    ipset add unblocksh6 2a00:1450::/32 2>/dev/null  # Google/YouTube
+    ipset add unblocksh6 2600:1900::/32 2>/dev/null  # Google Cloud
+    ipset add unblocksh6 2a00:1450:4001::/48 2>/dev/null
+    ipset add unblocksh6 2a00:1450:4010::/48 2>/dev/null
+    
+    # IPv6 правила для Shadowsocks
+    ip6tables -I PREROUTING -w -t nat -p tcp -m set --match-set unblocksh6 dst -j REDIRECT --to-ports 1082 2>/dev/null && \
+        echo "  ✅ IPv6 Shadowsocks правила добавлены" || echo "  ⚠️  IPv6 Shadowsocks правила не добавлены"
+    ip6tables -I PREROUTING -w -t nat -p udp -m set --match-set unblocksh6 dst -j REDIRECT --to-ports 1082 2>/dev/null
+    
+    echo "✅ IPv6 правила применены"
+    
+    echo "✅ Правила маршрутизации применены"
 fi
 
 exit 0

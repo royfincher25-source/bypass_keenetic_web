@@ -14,4 +14,16 @@ fi
 
 /opt/bin/unblock_dnsmasq.sh
 /opt/etc/init.d/S56dnsmasq restart
-/opt/bin/unblock_ipset.sh &
+
+# Block until ipset is filled, with logging
+mkdir -p /opt/var/log
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> /opt/var/log/unblock.log 2>/dev/null || true
+echo "Starting ipset population..." | tee -a /opt/var/log/unblock.log
+/opt/bin/unblock_ipset.sh 2>&1 | tee -a /opt/var/log/unblock.log
+
+# Verify result
+sleep 2
+for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
+    count=$(ipset list "$ipset_name" 2>/dev/null | grep -c "^[0-9]" || echo 0)
+    echo "$ipset_name: $count entries" | tee -a /opt/var/log/unblock.log
+done

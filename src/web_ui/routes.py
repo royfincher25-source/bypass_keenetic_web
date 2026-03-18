@@ -306,31 +306,55 @@ def key_config(service: str):
                 logger.info("Parsing VLESS key")
                 parsed = parse_vless_key(key)
                 logger.info(f"VLESS key parsed: {list(parsed.keys())}")
+                # Проверка успешности парсинга
+                if not parsed.get('server') or not parsed.get('port'):
+                    logger.error(f"VLESS parse failed: missing server/port")
+                    raise ValueError("Не удалось распарсить ключ VLESS: отсутствуют server/port")
+                logger.info(f"VLESS parse OK: server={parsed['server']}, port={parsed['port']}")
                 logger.info("Generating VLESS config")
                 cfg = vless_config(key)
                 logger.info(f"VLESS config generated with {len(cfg)} keys")
+                logger.info(f"About to write VLESS config to {svc['config_path']}")
                 write_json_config(cfg, svc['config_path'])
+                logger.info(f"VLESS config written successfully")
             elif service == 'shadowsocks':
                 logger.info("Parsing Shadowsocks key")
                 parsed = parse_shadowsocks_key(key)
                 logger.info(f"Shadowsocks key parsed: {list(parsed.keys())}")
+                # Проверка успешности парсинга
+                if not parsed.get('server') or not parsed.get('port'):
+                    logger.error(f"Shadowsocks parse failed: missing server/port")
+                    raise ValueError("Не удалось распарсить ключ: отсутствуют server/port")
+                logger.info(f"Shadowsocks parse OK: server={parsed['server']}, port={parsed['port']}")
                 logger.info("Generating Shadowsocks config")
                 cfg = shadowsocks_config(key)
                 logger.info(f"Shadowsocks config generated with {len(cfg)} keys")
+                logger.info(f"About to write Shadowsocks config to {svc['config_path']}")
                 write_json_config(cfg, svc['config_path'])
+                logger.info(f"Shadowsocks config written successfully")
             elif service == 'trojan':
                 logger.info("Parsing Trojan key")
                 parsed = parse_trojan_key(key)
                 logger.info(f"Trojan key parsed: {list(parsed.keys())}")
+                # Проверка успешности парсинга
+                if not parsed.get('server') or not parsed.get('port'):
+                    logger.error(f"Trojan parse failed: missing server/port")
+                    raise ValueError("Не удалось распарсить ключ Trojan: отсутствуют server/port")
+                logger.info(f"Trojan parse OK: server={parsed['server']}, port={parsed['port']}")
                 logger.info("Generating Trojan config")
                 cfg = trojan_config(key)
+                logger.info(f"About to write Trojan config to {svc['config_path']}")
                 write_json_config(cfg, svc['config_path'])
+                logger.info(f"Trojan config written successfully")
             elif service == 'tor':
                 logger.info("Generating Tor config")
                 cfg = tor_config(key)
+                logger.info(f"About to write Tor config to {svc['config_path']}")
                 write_tor_config(cfg, svc['config_path'])
+                logger.info(f"Tor config written successfully")
 
             logger.info(f"Config written successfully for {service}")
+            logger.info(f"About to restart {svc['name']} service")
 
             # Перезапуск сервиса через ThreadPoolExecutor (неблокирующий)
             try:
@@ -776,11 +800,13 @@ def service():
     # Проверка статуса DNS Override
     dns_override_enabled = False
     try:
+        # Используем синтаксис Keenetic: | include для фильтрации
         result = subprocess.run(
-            ['ndmc', '-c', 'show running | grep dns-override'],
-            capture_output=True, text=True, shell=True, timeout=5
+            ['ndmc', '-c', 'show running | include dns-override'],
+            capture_output=True, text=True, timeout=5
         )
-        dns_override_enabled = (result.returncode == 0 and 'dns-override' in result.stdout)
+        dns_override_enabled = (result.returncode == 0 and result.stdout.strip() != '')
+        logger.debug(f"DNS Override status check: returncode={result.returncode}, stdout={result.stdout.strip()}")
     except Exception as e:
         logger.error(f"Error checking DNS Override status: {e}")
         dns_override_enabled = False
@@ -1105,6 +1131,25 @@ def service_install():
             
             if process.returncode == 0:
                 flash('✅ Установка bypass_keenetic_web завершена', 'success')
+                
+                try:
+                    result = subprocess.run(
+                        ['sh', '-c', 'ipset list -n'],
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    if 'unblocksh' in result.stdout:
+                        flash('✅ ipset initialized', 'success')
+                    else:
+                        flash('⚠️ ipset not found', 'warning')
+                        
+                    for script in ['S99unblock', 'S99web_ui']:
+                        if os.path.exists(f'/opt/etc/init.d/{script}'):
+                            flash(f'✅ {script} installed', 'success')
+                            
+                except Exception as e:
+                    logger.error(f"Post-install verification error: {e}")
             else:
                 flash('❌ Ошибка установки', 'danger')
                 

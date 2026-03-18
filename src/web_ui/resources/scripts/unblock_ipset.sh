@@ -1,110 +1,206 @@
 #!/bin/sh
-# =============================================================================
-# БЫСТРЫЙ СКРИПТ ЗАПОЛНЕНИЯ IPSET (v3.5.4)
-# =============================================================================
-# Оптимизации:
-# - Параллелизм через & (фон) вместо xargs -P (BusyBox не поддерживает -P)
-# - nslookup вместо dig (быстрее на Entware)
-# - Пакетная загрузка в ipset через restore -!
-# - Проверка пустых списков
-# =============================================================================
+# unblock_ipset.sh - Заполнение IPSET с DNS разрешением
+# Копия из работающего архива (адаптированная для nslookup)
 
-TAG="unblock_ipset"
-DNS_SERVER="8.8.8.8"
-MAX_PARALLEL=20
+mkdir -p /opt/var/log
+LOGFILE="/opt/var/log/unblock_ipset.log"
+echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOGFILE"
 
 cut_local() {
-    grep -vE '^0\.|^127\.|^10\.|^172\.16\.|^192\.168\.|^::1$'
+	grep -vE 'localhost|^0\.|^127\.|^10\.|^172\.16\.|^192\.168\.|^::|^fc..:|^fd..:|^fe..:'
 }
 
-resolve_one() {
-    domain="$1"
-    outfile="$2"
-    nslookup "$domain" "$DNS_SERVER" 2>/dev/null | \
-        grep -i 'address' | \
-        grep -v '8\.8\.8\.8' | \
-        sed 's/.*Address [0-9]*: //' | \
-        grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> "$outfile"
-}
+# Проверка DNS
+until nslookup google.com 8.8.8.8 >/dev/null 2>&1; do sleep 5; done
 
-process_list() {
-    ipset_name="$1"
-    list_file="$2"
-    tmpips="/tmp/ipset_${ipset_name}_$$.ips"
+while read -r line || [ -n "$line" ]; do
 
-    if [ ! -f "$list_file" ]; then
-        echo "⚠️ Нет файла: $list_file"
-        return 1
-    fi
+  [ -z "$line" ] && continue
+  [ "${line#?}" = "#" ] && continue
 
-    ipset create "$ipset_name" hash:net family inet hashsize 4096 maxelem 65536 -exist 2>/dev/null
-    ipset flush "$ipset_name" 2>/dev/null
+  cidr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}' | cut_local)
 
-    : > "$tmpips"
+  if [ -n "$cidr" ]; then
+    ipset -exist add unblocksh "$cidr"
+    continue
+  fi
 
-    count=0
-    pids=""
-    while read -r domain; do
-        [ -z "$domain" ] && continue
-        resolve_one "$domain" "$tmpips" &
-        pids="$pids $!"
-        count=$((count + 1))
+  range=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
 
-        if [ $count -ge $MAX_PARALLEL ]; then
-            for pid in $pids; do
-                wait $pid 2>/dev/null
-            done
-            pids=""
-            count=0
-        fi
-    done << EOF
-$(grep -vE '^#|^[0-9]|^$' "$list_file" 2>/dev/null)
-EOF
+  if [ -n "$range" ]; then
+    ipset -exist add unblocksh "$range"
+    continue
+  fi
 
-    for pid in $pids; do
-        wait $pid 2>/dev/null
+  addr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$addr" ]; then
+    ipset -exist add unblocksh "$addr"
+    continue
+  fi
+
+  # DNS разрешение домена через nslookup
+  nslookup "$line" 8.8.8.8 2>/dev/null | \
+    grep -v '8\.8\.8\.8' | \
+    grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+    while read -r ip; do
+      ipset -exist add unblocksh "$ip"
     done
 
-    grep -E '^[0-9]' "$list_file" 2>/dev/null | cut_local >> "$tmpips"
+done < /opt/etc/unblock/shadowsocks.txt
 
-    ip_count=$(sort -u "$tmpips" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | wc -l)
-    sort -u "$tmpips" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local | \
-        sed "s/^/add $ipset_name /" | ipset restore -! 2>/dev/null
 
-    echo "✅ $ipset_name: $ip_count IP"
-    rm -f "$tmpips"
-}
+while read -r line || [ -n "$line" ]; do
 
-# =============================================================================
-# ОСНОВНАЯ ЧАСТЬ
-# =============================================================================
+  [ -z "$line" ] && continue
+  [ "${line#?}" = "#" ] && continue
 
-START_TIME=$(date +%s)
-echo "🚀 Запуск (параллельно: $MAX_PARALLEL, nslookup)"
+  cidr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}' | cut_local)
 
-process_list "unblocksh" "/opt/etc/unblock/shadowsocks.txt"
-process_list "unblocktor" "/opt/etc/unblock/tor.txt"
-process_list "unblockvless" "/opt/etc/unblock/vless.txt"
-process_list "unblocktroj" "/opt/etc/unblock/trojan.txt"
+  if [ -n "$cidr" ]; then
+    ipset -exist add unblocktor "$cidr"
+    continue
+  fi
 
-for vpn_file in /opt/etc/unblock/vpn-*.txt; do
-    [ -f "$vpn_file" ] || continue
-    vpn_name=$(basename "$vpn_file" .txt)
-    ipset_name="unblock${vpn_name#vpn-}"
-    process_list "$ipset_name" "$vpn_file"
-done
+  range=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
 
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
+  if [ -n "$range" ]; then
+    ipset -exist add unblocktor "$range"
+    continue
+  fi
 
-echo ""
-echo "✅ Завершено за ${DURATION}c"
-echo "📊 Статистика:"
-for ipset in unblocksh unblocktor unblockvless unblocktroj; do
-    if ipset list "$ipset" -n 2>/dev/null | grep -q "^$ipset$"; then
-        count=$(ipset list "$ipset" 2>/dev/null | grep -c "^[0-9]")
-        echo "  $ipset: $count IP"
-    else
-        echo "  $ipset: 0 IP"
+  addr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$addr" ]; then
+    ipset -exist add unblocktor "$addr"
+    continue
+  fi
+
+  nslookup "$line" 8.8.8.8 2>/dev/null | \
+    grep -v '8\.8\.8\.8' | \
+    grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+    while read -r ip; do
+      ipset -exist add unblocktor "$ip"
+    done
+
+done < /opt/etc/unblock/tor.txt
+
+
+while read -r line || [ -n "$line" ]; do
+
+  [ -z "$line" ] && continue
+  [ "${line#?}" = "#" ] && continue
+
+  cidr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}' | cut_local)
+
+  if [ -n "$cidr" ]; then
+    ipset -exist add unblockvless "$cidr"
+    continue
+  fi
+
+  range=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$range" ]; then
+    ipset -exist add unblockvless "$range"
+    continue
+  fi
+
+  addr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$addr" ]; then
+    ipset -exist add unblockvless "$addr"
+    continue
+  fi
+
+  nslookup "$line" 8.8.8.8 2>/dev/null | \
+    grep -v '8\.8\.8\.8' | \
+    grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+    while read -r ip; do
+      ipset -exist add unblockvless "$ip"
+    done
+
+done < /opt/etc/unblock/vless.txt
+
+
+while read -r line || [ -n "$line" ]; do
+
+  [ -z "$line" ] && continue
+  [ "${line#?}" = "#" ] && continue
+
+  cidr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}' | cut_local)
+
+  if [ -n "$cidr" ]; then
+    ipset -exist add unblocktroj "$cidr"
+    continue
+  fi
+
+  range=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$range" ]; then
+    ipset -exist add unblocktroj "$range"
+    continue
+  fi
+
+  addr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+  if [ -n "$addr" ]; then
+    ipset -exist add unblocktroj "$addr"
+    continue
+  fi
+
+  nslookup "$line" 8.8.8.8 2>/dev/null | \
+    grep -v '8\.8\.8\.8' | \
+    grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+    while read -r ip; do
+      ipset -exist add unblocktroj "$ip"
+    done
+
+done < /opt/etc/unblock/trojan.txt
+
+if ls -d /opt/etc/unblock/vpn-*.txt >/dev/null 2>&1; then
+for vpn_file_names in /opt/etc/unblock/vpn-*; do
+  vpn_file_name=$(echo "$vpn_file_names" | awk -F '/' '{print $5}' | sed 's/.txt//')
+  unblockvpn=$(echo unblock"$vpn_file_name")
+  cat "$vpn_file_names" | while read -r line || [ -n "$line" ]; do
+    [ -z "$line" ] && continue
+    [ "${line#?}" = "#" ] && continue
+
+    cidr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}' | cut_local)
+
+    if [ -n "$cidr" ]; then
+      ipset -exist add "$unblockvpn" "$cidr"
+      continue
     fi
+
+    range=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+    if [ -n "$range" ]; then
+      ipset -exist add "$unblockvpn" "$range"
+      continue
+    fi
+
+    addr=$(echo "$line" | grep -Eo '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut_local)
+
+    if [ -n "$addr" ]; then
+      ipset -exist add "$unblockvpn" "$addr"
+      continue
+    fi
+
+    nslookup "$line" 8.8.8.8 2>/dev/null | \
+      grep -v '8\.8\.8\.8' | \
+      grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | \
+      while read -r ip; do
+        ipset -exist add "$unblockvpn" "$ip"
+      done
+  done
+done
+fi
+
+echo "✅ IPSET заполнен"
+ipset list unblocksh | wc -l
+
+echo "Final counts:" >> "$LOGFILE"
+for name in unblocksh unblocktor unblockvless unblocktroj; do
+    cnt=$(ipset list "$name" 2>/dev/null | grep -c "^[0-9]" || echo 0)
+    echo "  $name: $cnt" >> "$LOGFILE"
 done
