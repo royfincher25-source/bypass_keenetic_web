@@ -8,6 +8,24 @@ echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOGFILE"
 
 cat /dev/null > /opt/etc/unblock.dnsmasq
 
+# Проверка доступности DNS перед генерацией конфига
+MAX_RETRIES=30
+RETRY_INTERVAL=2
+retry=0
+while [ $retry -lt $MAX_RETRIES ]; do
+  if nslookup google.com 8.8.8.8 >/dev/null 2>&1; then
+    echo "DNS ready after $((retry * RETRY_INTERVAL))s" >> "$LOGFILE"
+    break
+  fi
+  retry=$((retry + 1))
+  echo "Waiting for DNS... ($retry/$MAX_RETRIES)" >> "$LOGFILE"
+  sleep $RETRY_INTERVAL
+done
+
+if [ $retry -eq $MAX_RETRIES ]; then
+  echo "ERROR: DNS not available after $((MAX_RETRIES * RETRY_INTERVAL))s" >> "$LOGFILE"
+fi
+
 # Только для shadowsocks.txt
 if [ ! -f "/opt/etc/unblock/shadowsocks.txt" ]; then
     echo "Warning: /opt/etc/unblock/shadowsocks.txt not found, skipping" >> "$LOGFILE"
