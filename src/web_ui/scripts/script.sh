@@ -244,6 +244,13 @@ if [ "$1" = "-install" ]; then
         sed -i -e "s/192.168.1.1/${lanip}/g" -e "s/40500/${dnsovertlsport}/g" -e "s/40508/${dnsoverhttpsport}/g" "$DNSMASQ_CONF" && \
         echo "  ✅ dnsmasq.conf updated" || echo "  ❌ dnsmasq.conf"
 
+    # Перезапустить dnsmasq после обновления конфига
+    if [ -x "$INIT_DNSMASQ" ]; then
+        "$INIT_DNSMASQ" restart >/dev/null 2>&1 && echo "  ✅ dnsmasq restarted" || echo "  ⚠️ dnsmasq restart failed"
+    elif [ -x /opt/etc/init.d/S56dnsmasq ]; then
+        /opt/etc/init.d/S56dnsmasq restart >/dev/null 2>&1 && echo "  ✅ dnsmasq restarted" || echo "  ⚠️ dnsmasq restart failed"
+    fi
+
     # crontab - ВСЕГДА обновляем
     curl -sL -o "$CRONTAB" "$RESOURCES_URL/config/crontab" && \
         echo "  ✅ crontab updated" || echo "  ❌ crontab"
