@@ -29,8 +29,8 @@ DEFAULT_DNS_SERVERS = {
     ],
 }
 
-CHECK_INTERVAL = 30  # Check every 30 seconds
-TIMEOUT = 2  # 2 second timeout per check
+CHECK_INTERVAL = 60  # Оптимизировано для KN-1212 (было: 30)
+TIMEOUT = 3  # Оптимизировано для KN-1212 (было: 2)
 FAILURE_THRESHOLD = 3  # Switch after 3 consecutive failures
 
 
