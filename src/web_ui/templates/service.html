@@ -10,6 +10,77 @@
     </a>
 </div>
 
+<!-- Системные характеристики -->
+<div class="card border-primary mb-4">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-memory"></i> Системные характеристики
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6><i class="bi bi-memory"></i> RAM</h6>
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar" id="mem-bar" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <small id="mem-text">Загрузка...</small>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-database"></i> Cache</h6>
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar bg-info" id="cache-bar" role="progressbar" style="width: 0%">0</div>
+                </div>
+                <small id="cache-text">Загрузка...</small>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-wifi"></i> DNS</h6>
+                <small id="dns-status">Загрузка...</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function updateStats() {
+    try {
+        const resp = await fetch('/api/system/stats');
+        const data = await resp.json();
+        
+        // RAM
+        const memPercent = data.percent || 0;
+        const memBar = document.getElementById('mem-bar');
+        memBar.style.width = memPercent + '%';
+        memBar.textContent = memPercent + '%';
+        if (memPercent > 80) memBar.className = 'progress-bar bg-danger';
+        else if (memPercent > 60) memBar.className = 'progress-bar bg-warning';
+        else memBar.className = 'progress-bar bg-success';
+        document.getElementById('mem-text').textContent = 
+            `${data.used_mb}MB / ${data.total_mb}MB (свободно: ${data.free_mb}MB)`;
+        
+        // Cache
+        const cachePercent = (data.cache_entries / data.cache_max) * 100;
+        const cacheBar = document.getElementById('cache-bar');
+        cacheBar.style.width = cachePercent + '%';
+        cacheBar.textContent = `${data.cache_entries}/${data.cache_max}`;
+        document.getElementById('cache-text').textContent = 'LRU entries';
+        
+        // DNS
+        const dnsInfo = data.dns_status;
+        let dnsText = '';
+        if (dnsInfo.running) {
+            dnsText = `✅ ${dnsInfo.current_server || 'N/A'} | Failures: ${dnsInfo.failures}`;
+        } else {
+            dnsText = '⏸️ Остановлен';
+        }
+        document.getElementById('dns-status').textContent = dnsText;
+    } catch (e) {
+        console.error('Failed to load stats:', e);
+    }
+}
+
+updateStats();
+setInterval(updateStats, 5000);
+</script>
+
 <div class="row g-4">
     <!-- Перезапуск Unblock-сервиса -->
     <div class="col-12 col-md-6">

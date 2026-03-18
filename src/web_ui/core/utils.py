@@ -511,3 +511,59 @@ def cleanup_memory() -> None:
     """
     Cache.clear()
     logger.debug("Memory cleanup completed")
+
+
+# =============================================================================
+# SYSTEM STATS
+# =============================================================================
+
+def get_memory_stats() -> dict:
+    """
+    Get memory usage statistics for the system.
+    
+    Returns:
+        dict with total_mb, used_mb, free_mb, percent, cache_entries
+    """
+    try:
+        with open('/proc/meminfo', 'r') as f:
+            lines = f.readlines()
+        
+        mem = {}
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 2:
+                key = parts[0].rstrip(':')
+                try:
+                    mem[key] = int(parts[1])  # KB
+                except ValueError:
+                    pass
+        
+        total = mem.get('MemTotal', 0) / 1024  # MB
+        free = mem.get('MemFree', 0) / 1024
+        buffers = mem.get('Buffers', 0) / 1024
+        cached = mem.get('Cached', 0) / 1024
+        
+        used = total - free - buffers - cached
+        percent = (used / total * 100) if total > 0 else 0
+        
+        return {
+            'total_mb': round(total, 1),
+            'used_mb': round(used, 1),
+            'free_mb': round(free, 1),
+            'cached_mb': round(cached, 1),
+            'percent': round(percent, 1),
+            'cache_entries': len(Cache._cache),
+            'cache_max': Cache.MAX_ENTRIES,
+        }
+    except Exception as e:
+        logger.error(f"Failed to get memory stats: {e}")
+        return {
+            'total_mb': 0,
+            'used_mb': 0,
+            'free_mb': 0,
+            'cached_mb': 0,
+            'percent': 0,
+            'cache_entries': 0,
+            'cache_max': Cache.MAX_ENTRIES,
+            'error': str(e)
+        }

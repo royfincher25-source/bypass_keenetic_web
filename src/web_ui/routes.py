@@ -1301,6 +1301,30 @@ def dns_monitor_check():
 
 
 # =============================================================================
+# SYSTEM STATS
+# =============================================================================
+
+@bp.route('/api/system/stats')
+@login_required
+def system_stats():
+    """Get system memory and cache statistics"""
+    from core.utils import get_memory_stats
+    from core.dns_monitor import get_dns_monitor
+    
+    stats = get_memory_stats()
+    
+    monitor = get_dns_monitor()
+    stats['dns_status'] = {
+        'running': monitor.is_running(),
+        'current_server': monitor._current_server['name'] if monitor._current_server else None,
+        'failures': monitor._failures,
+        'last_check': monitor._last_check.isoformat() if monitor._last_check else None,
+    }
+    
+    return jsonify(stats)
+
+
+# =============================================================================
 # ROUTE REGISTRATION
 # =============================================================================
 
