@@ -5,6 +5,8 @@ case "$1" in
   start)
     echo "Starting unblock ipset..."
     /opt/bin/unblock_ipset.sh
+    echo "Setting up iptables redirect rules..."
+    /opt/etc/ndm/netfilter.d/100-redirect.sh
     ;;
   stop)
     echo "Stopping unblock ipset..."

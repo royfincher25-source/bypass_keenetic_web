@@ -31,7 +31,7 @@ curl -sL https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_w
 
 **Что делает кнопка:**
 - ✅ Загружает все ресурсы с GitHub (скрипты, шаблоны, конфиги, списки)
-- ✅ Устанавливает пакеты (curl, python3-pip и др.)
+- ✅ Устанавливает пакеты (curl, python3-pip, dnsmasq и др.)
 - ✅ Настраивает ipset, VPN, dnsmasq
 - ✅ Запускает веб-интерфейс
 

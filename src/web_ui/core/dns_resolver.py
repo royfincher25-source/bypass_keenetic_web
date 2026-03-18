@@ -12,10 +12,11 @@ Example:
     >>> from core.dns_resolver import parallel_resolve, resolve_single
     >>> ips = resolve_single('google.com')
     >>> print(f"google.com IPs: {ips}")
-    
+
     >>> results = parallel_resolve(['google.com', 'facebook.com'], max_workers=4)
     >>> print(f"Resolved {len(results)} domains")
 """
+import subprocess
 import socket
 import logging
 import re
@@ -29,11 +30,15 @@ logger = logging.getLogger(__name__)
 # Prevents OOM when resolving hundreds of domains in parallel
 MAX_WORKERS = 10  # Maximum parallel workers for 128MB RAM
 DEFAULT_TIMEOUT = 5.0  # DNS resolution timeout in seconds
+DNS_SERVER = "8.8.8.8"  # External DNS server for reliable resolution
 
 
 def resolve_single(domain: str, timeout: float = DEFAULT_TIMEOUT) -> List[str]:
     """
-    Resolve a single domain to IP addresses.
+    Resolve a single domain to IP addresses using nslookup.
+
+    Uses nslookup with external DNS (8.8.8.8) for reliable resolution
+    on embedded devices (like donor project).
 
     Args:
         domain: Domain name to resolve
@@ -45,17 +50,35 @@ def resolve_single(domain: str, timeout: float = DEFAULT_TIMEOUT) -> List[str]:
     Example:
         >>> resolve_single('google.com')
         ['142.250.185.46', '142.250.185.47', ...]
-        
+
         >>> resolve_single('invalid.domain')
         []
     """
     try:
-        # Get all A records
-        result = socket.getaddrinfo(domain, None, socket.AF_INET, socket.SOCK_STREAM)
-        ips = list(set([addr[4][0] for addr in result]))
+        # Use nslookup with external DNS like donor project
+        result = subprocess.run(
+            ["nslookup", domain, DNS_SERVER],
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+        
+        # Extract IP addresses from output
+        # Match lines like "Address:  142.250.185.46" or "Address: 142.250.185.46"
+        ips = re.findall(r'Address:\s*([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})', result.stdout)
+        
+        # Remove DNS server IP from results
+        ips = [ip for ip in ips if ip != DNS_SERVER]
+        
+        # Deduplicate
+        ips = list(set(ips))
+        
         logger.debug(f"Resolved {domain} -> {ips}")
         return ips
-    except socket.gaierror as e:
+    except subprocess.TimeoutExpired:
+        logger.warning(f"Timeout resolving {domain}")
+        return []
+    except subprocess.SubprocessError as e:
         logger.warning(f"Failed to resolve {domain}: {e}")
         return []
     except Exception as e:

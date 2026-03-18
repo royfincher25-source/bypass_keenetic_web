@@ -274,6 +274,18 @@ if [ "$1" = "-install" ]; then
     echo "⏳ Применение настроек..."
     "$UNBLOCK_UPDATE" >/dev/null 2>&1 && echo "  ✅ unblock_update применён" || echo "  ⚠️ unblock_update"
     "$UNBLOCK_DNSMASQ" >/dev/null 2>&1 && echo "  ✅ unblock_dnsmasq применён" || echo "  ⚠️ unblock_dnsmasq"
+    
+    # Применение правил маршрутизации (iptables)
+    echo ""
+    echo "🔥 Применение правил маршрутизации (iptables)..."
+    "$REDIRECT_SCRIPT" >/dev/null 2>&1 && echo "  ✅ 100-redirect.sh применён" || echo "  ⚠️ 100-redirect.sh"
+    
+    # Проверка правил
+    if iptables-save -t nat 2>/dev/null | grep -q "1082"; then
+        echo "  ✅ iptables правила: активны"
+    else
+        echo "  ⚠️  iptables правила: не применены"
+    fi
 
     # Запуск веб-интерфейса
     echo ""

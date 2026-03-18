@@ -5,7 +5,7 @@
 # Генерируется web_ui при установке bypass_keenetic
 # =============================================================================
 
-base_url = "https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/master"
+base_url = "https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic-web/main"
 routerip = "192.168.1.1"
 
 localportsh = 8388
@@ -31,3 +31,11 @@ unblock_ipset = "/opt/bin/unblock_ipset.sh"
 unblock_dnsmasq = "/opt/bin/unblock_dnsmasq.sh"
 unblock_update = "/opt/bin/unblock_update.sh"
 script_sh = "/opt/root/script.sh"
+init_shadowsocks = "/opt/etc/init.d/S22shadowsocks"
+init_trojan = "/opt/etc/init.d/S22trojan"
+init_xray = "/opt/etc/init.d/S24xray"
+init_tor = "/opt/etc/init.d/S35tor"
+init_dnsmasq = "/opt/etc/init.d/S56dnsmasq"
+init_unblock = "/opt/etc/init.d/S99unblock"
+init_web = "/opt/etc/init.d/S99web_ui"
+hosts_file = "/opt/etc/hosts"

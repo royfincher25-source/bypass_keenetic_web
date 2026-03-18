@@ -52,10 +52,10 @@ def update_dnsmasq_dns(server_host: str) -> Tuple[bool, str]:
         # Add new server line
         lines.append(f'server={server_host}')
 
-        # Atomic write: write to .tmp file first, then rename
-        temp_path = str(config_path) + '.tmp'
-        Path(temp_path).write_text('\n'.join(lines))
-        Path(temp_path).rename(config_path)
+        # Atomic write via .tmp file
+        tmp_path = config_path.with_suffix('.tmp')
+        tmp_path.write_text('\n'.join(lines))
+        tmp_path.replace(config_path)
 
         logger.debug(f"Written new dnsmasq config with server={server_host}")
 
@@ -69,20 +69,10 @@ def update_dnsmasq_dns(server_host: str) -> Tuple[bool, str]:
 
         if result.returncode == 0:
             logger.info(f"Updated dnsmasq to use {server_host}")
-            return True, f"Switched to {server_host}"
+            return True, "OK"
         else:
             logger.error(f"dnsmasq restart failed: {result.stderr}")
-            return False, f"Restart failed: {result.stderr}"
-
-    except PermissionError as e:
-        error_msg = f"Permission denied: {e}"
-        logger.error(error_msg)
-        return False, error_msg
-
-    except FileNotFoundError as e:
-        error_msg = f"Command not found: {e}"
-        logger.error(error_msg)
-        return False, error_msg
+            return False, result.stderr
 
     except subprocess.TimeoutExpired:
         error_msg = "dnsmasq restart timeout"

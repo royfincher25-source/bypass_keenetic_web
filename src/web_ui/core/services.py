@@ -244,7 +244,9 @@ def parse_shadowsocks_key(key: str) -> Dict[str, Any]:
 
     if Cache.is_valid(cache_key):
         logger.info(f"Shadowsocks cache hit: {cache_key[:20]}...")
-        return Cache.get(cache_key)
+        cached_result = Cache.get(cache_key)
+        logger.info(f"Shadowsocks cache get вернул: {type(cached_result)}")
+        return cached_result
     
     if not key.startswith('ss://'):
         raise ValueError("Неверный формат ключа Shadowsocks")
@@ -383,17 +385,18 @@ def parse_shadowsocks_key(key: str) -> Dict[str, Any]:
 def shadowsocks_config(key: str) -> Dict[str, Any]:
     """
     Generate Shadowsocks configuration from key.
-    
+
     Args:
         key: Shadowsocks key string
-    
+
     Returns:
         Dict with full configuration for shadowsocks-libev
     """
     logger.info(f"shadowsocks_config: вызов с ключом {key[:20]}...")
-    
+
     parsed = parse_shadowsocks_key(key)
-    
+    logger.info(f"shadowsocks_config: parse_shadowsocks_key вернул результат")
+
     config = {
         'server': [parsed['server']],
         'mode': 'tcp_and_udp',
@@ -406,7 +409,7 @@ def shadowsocks_config(key: str) -> Dict[str, Any]:
         'fast_open': False,
         'ipv6_first': True,
     }
-    
+
     logger.info(f"shadowsocks_config: конфигурация сгенерирована")
     return config
 
@@ -611,20 +614,21 @@ def tor_config(bridges_text: str) -> Dict[str, Any]:
 def restart_service(service_name: str, init_script: str) -> Tuple[bool, str]:
     """
     Restart a service using init script.
-    
+
     Args:
         service_name: Human-readable service name
         init_script: Path to init script
-    
+
     Returns:
         Tuple of (success: bool, output: str)
     """
     logger.info(f"restart_service: {service_name} via {init_script}")
-    
+
     if not os.path.exists(init_script):
         logger.error(f"Init script not found: {init_script}")
         return False, f"Скрипт {init_script} не найден"
-    
+
+    logger.info(f"restart_service: running ['sh', {init_script}, 'restart']")
     try:
         result = subprocess.run(
             ['sh', init_script, 'restart'],
@@ -632,17 +636,18 @@ def restart_service(service_name: str, init_script: str) -> Tuple[bool, str]:
             text=True,
             timeout=60
         )
-        
+        logger.info(f"restart_service: {service_name} completed with returncode={result.returncode}")
+
         success = result.returncode == 0
         output = result.stdout.strip() or result.stderr.strip()
-        
+
         if success:
             logger.info(f"{service_name} restarted successfully: {output}")
         else:
             logger.error(f"{service_name} restart failed: {output}")
-        
+
         return success, output
-    
+
     except subprocess.TimeoutExpired:
         logger.error(f"{service_name} restart timed out")
         return False, "Превышено время ожидания"
@@ -735,21 +740,23 @@ def write_json_config(config: Dict[str, Any], filepath: str) -> None:
     temp_path = filepath + '.tmp'
 
     try:
+        logger.info(f"write_json_config: creating directory {os.path.dirname(filepath)}")
         # Создать директорию если не существует
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         logger.debug(f"Directory created or exists: {os.path.dirname(filepath)}")
-        
+
+        logger.info(f"write_json_config: opening temp file {temp_path}")
         logger.debug(f"Writing config to {temp_path}")
         with open(temp_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
-        logger.debug(f"Config written to {temp_path}")
+        logger.info(f"write_json_config: config written to {temp_path}")
 
-        logger.debug(f"Replacing {temp_path} with {filepath}")
+        logger.info(f"write_json_config: replacing {temp_path} with {filepath}")
         os.replace(temp_path, filepath)
-        logger.info(f"Config written to {filepath}")
+        logger.info(f"write_json_config: config written to {filepath} successfully")
 
     except Exception as e:
-        logger.error(f"Error writing config: {e}")
+        logger.error(f"write_json_config: error writing config: {e}")
         logger.error(f"Exception type: {type(e).__name__}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -764,14 +771,19 @@ def write_json_config(config: Dict[str, Any], filepath: str) -> None:
 def write_tor_config(config: Dict[str, Any], filepath: str) -> None:
     """
     Write Tor configuration to file.
-    
+
     Args:
         config: Configuration dict
         filepath: Path to output file
     """
+    logger.info(f"write_tor_config: writing to {filepath}")
     temp_path = filepath + '.tmp'
-    
+
     try:
+        logger.info(f"write_tor_config: creating directory {os.path.dirname(filepath)}")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        
+        logger.info(f"write_tor_config: opening temp file {temp_path}")
         with open(temp_path, 'w', encoding='utf-8') as f:
             for key, value in config.items():
                 if isinstance(value, list):
@@ -779,12 +791,17 @@ def write_tor_config(config: Dict[str, Any], filepath: str) -> None:
                         f.write(f"{key} {item}\n")
                 else:
                     f.write(f"{key} {value}\n")
-        
+        logger.info(f"write_tor_config: config written to {temp_path}")
+
+        logger.info(f"write_tor_config: replacing {temp_path} with {filepath}")
         os.replace(temp_path, filepath)
-        logger.info(f"Tor config written to {filepath}")
-    
+        logger.info(f"write_tor_config: Tor config written to {filepath} successfully")
+
     except Exception as e:
-        logger.error(f"Error writing Tor config: {e}")
+        logger.error(f"write_tor_config: error writing config: {e}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         try:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
