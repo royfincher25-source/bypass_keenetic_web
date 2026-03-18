@@ -976,7 +976,6 @@ def service_backup():
 
     Requires authentication.
     """
-    backup_dir = '/opt/etc/web_ui/backup'
     backups = get_backup_list()
     
     if request.method == 'POST':
