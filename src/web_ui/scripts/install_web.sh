@@ -89,7 +89,7 @@ cd "$WEB_DIR"
 log_info "⏳ Загрузка файлов веб-интерфейса..."
 
 # Основные файлы
-FILES="app.py routes.py env_parser.py requirements.txt .env.example version.md"
+FILES="app.py routes.py env_parser.py requirements.txt .env.example"
 for file in $FILES; do
     printf "  → %-20s" "$file"
     if curl -sL -o "$file" "$BASE_URL/$file"; then
@@ -98,6 +98,15 @@ for file in $FILES; do
         echo " ❌"
     fi
 done
+
+# VERSION загружается из корня репозитория
+printf "  → %-20s" "VERSION"
+VERSION_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/VERSION"
+if curl -sL -o "VERSION" "$VERSION_URL"; then
+    echo " ✅"
+else
+    echo " ❌"
+fi
 
 # =============================================================================
 # ЗАГРУЗКА CORE МОДУЛЕЙ

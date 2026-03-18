@@ -867,7 +867,8 @@ def create_backup(backup_type='full'):
 
 def get_local_version():
     """Получить локальную версию"""
-    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'version.md')
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    version_file = os.path.join(project_root, 'VERSION')
     try:
         with open(version_file, 'r', encoding='utf-8') as f:
             return f.read().strip()
@@ -881,7 +882,7 @@ def get_remote_version():
     try:
         github_repo = 'royfincher25-source/bypass_keenetic_web'
         github_branch = 'master'
-        url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/web_ui/version.md'
+        url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/VERSION'
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return response.text.strip()

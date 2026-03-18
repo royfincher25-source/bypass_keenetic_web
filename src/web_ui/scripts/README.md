@@ -132,8 +132,8 @@ base_url = "https://raw.githubusercontent.com/royfincher25-source/bypass_keeneti
 ├── routes.py           # Маршруты
 ├── env_parser.py       # Парсер .env
 ├── requirements.txt    # Зависимости Python
-├── version.md          # Версия
 ├── .env.example        # Шаблон конфигурации
+├── VERSION             # Версия
 ├── core/
 │   ├── config.py
 │   ├── utils.py

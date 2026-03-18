@@ -499,7 +499,7 @@ bypass_keenetic-web/
 │       │   └── style.css       # Custom стили
 │       ├── requirements.txt    # Зависимости Python
 │       ├── .env.example       # Пример конфигурации
-│       └── version.md         # Версия приложения
+│       └── VERSION            # Версия приложения
 └── README.md
 ```
 
