@@ -832,7 +832,7 @@ def create_backup(backup_type='full'):
         backup_file = f'{backup_dir}/backup_{timestamp}.tar.gz'
         
         files_to_backup = [
-            '/opt/etc/bot',
+            '/opt/etc/web_ui',
             '/opt/etc/xray',
             '/opt/etc/tor',
             '/opt/etc/unblock',
