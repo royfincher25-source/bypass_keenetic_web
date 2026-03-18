@@ -36,6 +36,7 @@ from core.utils import (
 from core.ipset_manager import bulk_add_to_ipset, ensure_ipset_exists, bulk_remove_from_ipset
 from core.services import (
     parse_vless_key, vless_config, write_json_config,
+    parse_hysteria2_key, hysteria2_config, write_hysteria2_config,
     parse_shadowsocks_key, shadowsocks_config,
     parse_trojan_key, trojan_config,
     parse_tor_bridges, tor_config, write_tor_config,
@@ -199,6 +200,12 @@ def keys():
             'init': '/opt/etc/init.d/S24xray',
             'status': '❓',
         },
+        'hysteria2': {
+            'name': 'Hysteria 2',
+            'config': '/opt/etc/hysteria2.json',
+            'init': '/opt/etc/init.d/S22hysteria2',
+            'status': '❓',
+        },
         'shadowsocks': {
             'name': 'Shadowsocks',
             'config': '/opt/etc/shadowsocks.json',
@@ -264,6 +271,11 @@ def key_config(service: str):
             'name': 'VLESS',
             'config_path': '/opt/etc/xray/vless.json',
             'init_script': '/opt/etc/init.d/S24xray',
+        },
+        'hysteria2': {
+            'name': 'Hysteria 2',
+            'config_path': '/opt/etc/hysteria2.json',
+            'init_script': '/opt/etc/init.d/S22hysteria2',
         },
         'shadowsocks': {
             'name': 'Shadowsocks',
@@ -332,6 +344,19 @@ def key_config(service: str):
                 logger.info(f"About to write Shadowsocks config to {svc['config_path']}")
                 write_json_config(cfg, svc['config_path'])
                 logger.info(f"Shadowsocks config written successfully")
+            elif service == 'hysteria2':
+                logger.info("Parsing Hysteria 2 key")
+                parsed = parse_hysteria2_key(key)
+                logger.info(f"Hysteria 2 key parsed: {list(parsed.keys())}")
+                if not parsed.get('server') or not parsed.get('port'):
+                    logger.error(f"Hysteria 2 parse failed: missing server/port")
+                    raise ValueError("Не удалось распарсить ключ Hysteria 2: отсутствуют server/port")
+                logger.info(f"Hysteria 2 parse OK: server={parsed['server']}, port={parsed['port']}")
+                logger.info("Generating Hysteria 2 config")
+                cfg = hysteria2_config(key)
+                logger.info(f"About to write Hysteria 2 config to {svc['config_path']}")
+                write_hysteria2_config(cfg, svc['config_path'])
+                logger.info(f"Hysteria 2 config written successfully")
             elif service == 'trojan':
                 logger.info("Parsing Trojan key")
                 parsed = parse_trojan_key(key)
