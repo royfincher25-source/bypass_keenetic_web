@@ -1214,7 +1214,7 @@ def service_updates_run():
             else:
                 url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/{source_path}'
             try:
-                response = requests.get(url, timeout=30)
+                response = requests.get(url, timeout=60)
                 response.raise_for_status()
                 
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -1263,7 +1263,7 @@ def service_updates_run():
             
             # Restart web UI
             if os.path.exists('/opt/etc/init.d/S99web_ui'):
-                subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=10)
+                subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=30)
                 logger.info("Restarted S99web_ui")
                 
         except subprocess.TimeoutExpired:
