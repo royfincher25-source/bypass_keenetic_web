@@ -73,10 +73,12 @@ async function updateStats() {
             `${data.used_mb}MB / ${data.total_mb}MB (свободно: ${data.free_mb}MB)`;
         
         // Cache
-        const cachePercent = (data.cache_entries / data.cache_max) * 100;
+        const cacheEntries = data.cache_entries || 0;
+        const cacheMax = data.cache_max || 1;
+        const cachePercent = (cacheEntries / cacheMax) * 100;
         const cacheBar = document.getElementById('cache-bar');
         cacheBar.style.width = cachePercent + '%';
-        cacheBar.textContent = `${data.cache_entries}/${data.cache_max}`;
+        cacheBar.textContent = `${cacheEntries}/${cacheMax}`;
         document.getElementById('cache-text').textContent = 'LRU entries';
         
         // DNS
