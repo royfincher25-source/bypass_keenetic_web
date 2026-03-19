@@ -1022,8 +1022,8 @@ def create_backup(backup_type='full'):
 
 def get_local_version():
     """Получить локальную версию"""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    version_file = os.path.join(project_root, 'VERSION')
+    # На роутере VERSION файл находится в /opt/etc/web_ui/
+    version_file = '/opt/etc/web_ui/VERSION'
     try:
         with open(version_file, 'r', encoding='utf-8') as f:
             return f.read().strip()

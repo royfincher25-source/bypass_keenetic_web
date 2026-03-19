@@ -1134,6 +1134,12 @@ def service_updates_run():
         
         # Files to update (code only, not user data)
         files_to_update = {
+            # Version file
+            'VERSION': '/opt/etc/web_ui/VERSION',
+            
+            # Environment template
+            'web_ui/.env.example': '/opt/etc/web_ui/.env.example',
+            
             # Web UI core files
             'web_ui/routes.py': '/opt/etc/web_ui/routes.py',
             'web_ui/app.py': '/opt/etc/web_ui/app.py',
