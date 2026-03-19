@@ -1110,6 +1110,13 @@ def service_updates_run():
     progress = UpdateProgress()
     
     try:
+        # Check if update is already running
+        if progress.is_running:
+            return jsonify({
+                'success': False,
+                'error': 'Update already in progress'
+            })
+        
         flash('⏳ Создание резервной копии...', 'info')
         
         # Create backup before update
@@ -1130,7 +1137,8 @@ def service_updates_run():
         
         if existing_files:
             import tarfile
-            with tarfile.open(backup_file, 'w:gz') as tar:
+            # Use faster compression level for KN-1212 (level 1 instead of default 6)
+            with tarfile.open(backup_file, 'w:gz', compresslevel=1) as tar:
                 for f in existing_files:
                     tar.add(f, arcname=os.path.basename(f))
             flash(f'💾 Бэкап сохранён: {backup_file}', 'info')

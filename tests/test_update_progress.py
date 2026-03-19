@@ -49,6 +49,7 @@ def test_complete_update_flow():
     
     # Test progress tracking through entire flow
     progress = UpdateProgress()
+    progress.reset()  # Reset state from previous tests
     progress.start_update()
     assert progress.status == 'starting'
     

@@ -15,9 +15,13 @@ class UpdateProgress:
                 cls._instance.progress = 0
                 cls._instance.total_files = 0
                 cls._instance.error = None
+                cls._instance.is_running = False  # Flag to prevent concurrent updates
             return cls._instance
     
     def start_update(self, total_files=0):
+        if self.is_running:
+            raise Exception("Update already in progress")
+        self.is_running = True
         self.status = 'starting'
         self.message = 'Creating backup...'
         self.progress = 0
@@ -33,10 +37,12 @@ class UpdateProgress:
     def set_error(self, error):
         self.status = 'error'
         self.error = error
+        self.is_running = False
     
     def complete(self):
         self.status = 'complete'
         self.message = 'Update completed'
+        self.is_running = False
     
     def reset(self):
         self.status = 'idle'
@@ -45,6 +51,7 @@ class UpdateProgress:
         self.progress = 0
         self.total_files = 0
         self.error = None
+        self.is_running = False
     
     def get_status(self):
         return {
