@@ -1204,7 +1204,11 @@ def service_updates_run():
         error_count = 0
         
         for source_path, dest_path in files_to_update.items():
-            url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/{source_path}'
+            # VERSION file is in root, others are in src/
+            if source_path == 'VERSION':
+                url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/VERSION'
+            else:
+                url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/{source_path}'
             try:
                 response = requests.get(url, timeout=30)
                 response.raise_for_status()
