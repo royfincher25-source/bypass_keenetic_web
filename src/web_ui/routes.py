@@ -1141,12 +1141,16 @@ def service_updates_run():
             'web_ui/.env.example': '/opt/etc/web_ui/.env.example',
             
             # Web UI core files
+            'web_ui/__init__.py': '/opt/etc/web_ui/__init__.py',
             'web_ui/routes.py': '/opt/etc/web_ui/routes.py',
             'web_ui/app.py': '/opt/etc/web_ui/app.py',
             'web_ui/env_parser.py': '/opt/etc/web_ui/env_parser.py',
+            'web_ui/core/__init__.py': '/opt/etc/web_ui/core/__init__.py',
             'web_ui/core/utils.py': '/opt/etc/web_ui/core/utils.py',
             'web_ui/core/services.py': '/opt/etc/web_ui/core/services.py',
             'web_ui/core/dns_monitor.py': '/opt/etc/web_ui/core/dns_monitor.py',
+            'web_ui/core/dns_manager.py': '/opt/etc/web_ui/core/dns_manager.py',
+            'web_ui/core/dns_resolver.py': '/opt/etc/web_ui/core/dns_resolver.py',
             'web_ui/core/ipset_manager.py': '/opt/etc/web_ui/core/ipset_manager.py',
             'web_ui/core/app_config.py': '/opt/etc/web_ui/core/app_config.py',
             'web_ui/core/web_config.py': '/opt/etc/web_ui/core/web_config.py',
@@ -1172,6 +1176,28 @@ def service_updates_run():
             
             # Main script
             'web_ui/scripts/script.sh': '/opt/root/script.sh',
+            
+            # Templates
+            'web_ui/templates/base.html': '/opt/etc/web_ui/templates/base.html',
+            'web_ui/templates/login.html': '/opt/etc/web_ui/templates/login.html',
+            'web_ui/templates/index.html': '/opt/etc/web_ui/templates/index.html',
+            'web_ui/templates/keys.html': '/opt/etc/web_ui/templates/keys.html',
+            'web_ui/templates/bypass.html': '/opt/etc/web_ui/templates/bypass.html',
+            'web_ui/templates/install.html': '/opt/etc/web_ui/templates/install.html',
+            'web_ui/templates/stats.html': '/opt/etc/web_ui/templates/stats.html',
+            'web_ui/templates/service.html': '/opt/etc/web_ui/templates/service.html',
+            'web_ui/templates/updates.html': '/opt/etc/web_ui/templates/updates.html',
+            'web_ui/templates/bypass_view.html': '/opt/etc/web_ui/templates/bypass_view.html',
+            'web_ui/templates/bypass_add.html': '/opt/etc/web_ui/templates/bypass_add.html',
+            'web_ui/templates/bypass_remove.html': '/opt/etc/web_ui/templates/bypass_remove.html',
+            'web_ui/templates/bypass_catalog.html': '/opt/etc/web_ui/templates/bypass_catalog.html',
+            'web_ui/templates/key_generic.html': '/opt/etc/web_ui/templates/key_generic.html',
+            'web_ui/templates/backup.html': '/opt/etc/web_ui/templates/backup.html',
+            'web_ui/templates/dns_monitor.html': '/opt/etc/web_ui/templates/dns_monitor.html',
+            'web_ui/templates/logs.html': '/opt/etc/web_ui/templates/logs.html',
+            
+            # Static files
+            'web_ui/static/style.css': '/opt/etc/web_ui/static/style.css',
         }
         
         updated_count = 0
