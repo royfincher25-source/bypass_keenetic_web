@@ -659,17 +659,21 @@ def get_memory_stats() -> dict:
         used = total - free - buffers - cached
         percent = (used / total * 100) if total > 0 else 0
         
+        cache_entries = len(Cache._cache) if hasattr(Cache, '_cache') else 0
+        cache_max = Cache.MAX_ENTRIES if hasattr(Cache, 'MAX_ENTRIES') else 30
+        
         return {
             'total_mb': round(total, 1),
             'used_mb': round(used, 1),
             'free_mb': round(free, 1),
             'cached_mb': round(cached, 1),
             'percent': round(percent, 1),
-            'cache_entries': len(Cache._cache),
-            'cache_max': Cache.MAX_ENTRIES,
+            'cache_entries': cache_entries,
+            'cache_max': cache_max,
         }
     except Exception as e:
         logger.error(f"Failed to get memory stats: {e}")
+        cache_max = Cache.MAX_ENTRIES if hasattr(Cache, 'MAX_ENTRIES') else 30
         return {
             'total_mb': 0,
             'used_mb': 0,
@@ -677,6 +681,6 @@ def get_memory_stats() -> dict:
             'cached_mb': 0,
             'percent': 0,
             'cache_entries': 0,
-            'cache_max': Cache.MAX_ENTRIES,
+            'cache_max': cache_max,
             'error': str(e)
         }
