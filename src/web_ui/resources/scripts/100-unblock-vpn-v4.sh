@@ -3,7 +3,7 @@
 TAG="100-unblock-vpn.sh"
 
 sleep 1
-check_allow_vpn_in_config=$(grep "vpn_allowed" /opt/etc/bot/bot_config.py | head -1 | sed 's/=/ /g' | tr -d '\"' | awk '{print $2}')
+check_allow_vpn_in_config=$(grep "vpn_allowed" /opt/etc/web_ui/core/web_config.py | head -1 | sed 's/=/ /g' | tr -d '\"' | awk '{print $2}')
 if [ -z "${check_allow_vpn_in_config}" ]; then
     vpn_services="IKE|SSTP|OpenVPN|Wireguard|L2TP"
 else

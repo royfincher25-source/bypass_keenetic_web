@@ -1130,7 +1130,7 @@ def service_updates_run():
         flash('⏳ Загрузка обновлений...', 'info')
         
         github_repo = 'royfincher25-source/bypass_keenetic_web'
-        github_branch = 'main'
+        github_branch = 'master'
         
         # Files to update (code only, not user data)
         files_to_update = {

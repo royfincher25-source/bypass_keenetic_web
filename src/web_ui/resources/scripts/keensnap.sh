@@ -138,7 +138,7 @@ backup_custom_files() {
     local folder_path="$device_uuid:/$date"
 
     if [ -z "$CUSTOM_BACKUP_PATHS" ]; then
-        error "Переменная CUSTOM_BACKUP_PATHS не задана в bot_config.py"
+        error "Переменная CUSTOM_BACKUP_PATHS не задана в web_config.py"
         return 1
     fi
 

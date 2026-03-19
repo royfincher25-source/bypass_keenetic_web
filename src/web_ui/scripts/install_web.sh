@@ -3,7 +3,7 @@
 # BYPASS KEENETIC WEB UI - MINIMAL INSTALLER
 # =============================================================================
 # Установка в одну команду:
-#   curl -sL https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic-web/main/src/web_ui/install_web.sh | sh
+#   curl -sL https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/master/src/web_ui/install_web.sh | sh
 # =============================================================================
 
 set -e
@@ -233,7 +233,7 @@ tor_config = "/opt/etc/tor/torrc"
 shadowsocks_config = "/opt/etc/shadowsocks.json"
 trojan_config = "/opt/etc/trojan/config.json"
 vless_config = "/opt/etc/xray/config.json"
-templates_dir = "/opt/etc/bot/templates/"
+templates_dir = "/opt/etc/web_ui/templates/"
 dnsmasq_conf = "/opt/etc/dnsmasq.conf"
 crontab = "/opt/etc/crontab"
 redirect_script = "/opt/etc/ndm/netfilter.d/100-redirect.sh"

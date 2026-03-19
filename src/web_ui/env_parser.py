@@ -144,7 +144,7 @@ class EnvConfig:
         if not self._loaded:
             # Если путь не указан, используем путь по умолчанию
             if filepath is None:
-                filepath = '/opt/etc/bot/.env'
+                filepath = '/opt/etc/web_ui/.env'
             self._cache = load_env_file(filepath)
             self._loaded = True
         return self._cache

@@ -5,7 +5,7 @@
 # Генерируется web_ui при установке bypass_keenetic
 # =============================================================================
 
-base_url = "https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic-web/main"
+base_url = "https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/master"
 routerip = "192.168.1.1"
 
 localportsh = 8388
