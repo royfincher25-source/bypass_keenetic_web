@@ -991,8 +991,8 @@ def get_backup_list():
                         'date': f"{date_str[6:8]}.{date_str[4:6]}.{date_str[0:4]}",
                         'time': f"{time_str[0:2]}:{time_str[2:4]}" if time_str else '',
                     })
-                except:
-                    pass
+                except Exception as e:
+                    logger.error(f"Error processing backup {item}: {e}")
     
     return backups
 
@@ -1239,12 +1239,18 @@ def service_updates_run():
         try:
             # Run bypass update scripts
             if os.path.exists('/opt/bin/unblock_update.sh'):
-                subprocess.run(['/opt/bin/unblock_update.sh'], timeout=120)
-                logger.info("Ran unblock_update.sh")
+                result = subprocess.run(['/opt/bin/unblock_update.sh'], timeout=120, capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"unblock_update.sh failed with code {result.returncode}: {result.stderr}")
+                else:
+                    logger.info("Ran unblock_update.sh")
             
             if os.path.exists('/opt/bin/unblock_dnsmasq.sh'):
-                subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=120)
-                logger.info("Ran unblock_dnsmasq.sh")
+                result = subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=120, capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"unblock_dnsmasq.sh failed with code {result.returncode}: {result.stderr}")
+                else:
+                    logger.info("Ran unblock_dnsmasq.sh")
             
             # Restart related services
             if os.path.exists('/opt/etc/init.d/S99unblock'):
@@ -1563,7 +1569,7 @@ def system_stats():
     monitor = get_dns_monitor()
     stats['dns_status'] = {
         'running': monitor.is_running(),
-        'current_server': monitor._current_server['name'] if monitor._current_server else None,
+        'current_server': monitor._current_server.get('name') if monitor._current_server else None,
         'failures': monitor._failures,
         'last_check': monitor._last_check.isoformat() if monitor._last_check else None,
     }

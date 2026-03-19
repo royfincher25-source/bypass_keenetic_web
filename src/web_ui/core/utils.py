@@ -181,6 +181,15 @@ class Cache:
         cls._access_order.clear()
 
     @classmethod
+    def get_stats(cls) -> dict:
+        """Get cache statistics."""
+        return {
+            'entries': len(cls._cache),
+            'max_entries': cls.MAX_ENTRIES,
+            'access_order_len': len(cls._access_order)
+        }
+
+    @classmethod
     def cleanup_expired(cls) -> int:
         """
         Remove expired entries from cache.
@@ -659,8 +668,13 @@ def get_memory_stats() -> dict:
         used = total - free - buffers - cached
         percent = (used / total * 100) if total > 0 else 0
         
-        cache_entries = len(Cache._cache) if hasattr(Cache, '_cache') else 0
-        cache_max = Cache.MAX_ENTRIES if hasattr(Cache, 'MAX_ENTRIES') else 30
+        try:
+            cache_stats = Cache.get_stats()
+            cache_entries = cache_stats['entries']
+            cache_max = cache_stats['max_entries']
+        except AttributeError:
+            cache_entries = 0
+            cache_max = 30
         
         return {
             'total_mb': round(total, 1),
@@ -673,7 +687,10 @@ def get_memory_stats() -> dict:
         }
     except Exception as e:
         logger.error(f"Failed to get memory stats: {e}")
-        cache_max = Cache.MAX_ENTRIES if hasattr(Cache, 'MAX_ENTRIES') else 30
+        try:
+            cache_max = Cache.MAX_ENTRIES
+        except AttributeError:
+            cache_max = 30
         return {
             'total_mb': 0,
             'used_mb': 0,
