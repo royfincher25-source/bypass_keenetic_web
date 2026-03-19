@@ -81,15 +81,30 @@ if [ -f "$ENV_PARSER" ]; then
     fi
 fi
 
-# 7. Проверить права доступа
-echo "7. Установка прав доступа..."
+# 7. Добавить файл VERSION, если его нет
+echo "7. Проверка файла VERSION..."
+if [ ! -f "/opt/etc/web_ui/VERSION" ]; then
+    echo "   Файл VERSION не найден, скачиваем..."
+    curl -sL -o "/opt/etc/web_ui/VERSION" "https://raw.githubusercontent.com/royfincher25-source/bypass_keenetic_web/master/VERSION"
+    if [ -f "/opt/etc/web_ui/VERSION" ]; then
+        echo "   ✓ Файл VERSION скачан"
+    else
+        echo "   ✗ Не удалось скачать VERSION"
+    fi
+else
+    echo "   ✓ Файл VERSION уже существует"
+fi
+
+# 8. Проверить права доступа
+echo "8. Установка прав доступа..."
 chmod -R 755 /opt/etc/web_ui/scripts/ 2>/dev/null || true
 chmod -R 755 /opt/etc/web_ui/resources/scripts/ 2>/dev/null || true
 chmod 644 /opt/etc/web_ui/*.py 2>/dev/null || true
 chmod 644 /opt/etc/web_ui/core/*.py 2>/dev/null || true
+chmod 644 /opt/etc/web_ui/VERSION 2>/dev/null || true
 
-# 8. Перезапустить веб-интерфейс
-echo "8. Перезапуск веб-интерфейса..."
+# 9. Перезапустить веб-интерфейс
+echo "9. Перезапуск веб-интерфейса..."
 /opt/etc/init.d/S99web_ui start
 
 echo "=== Исправление завершено ==="
