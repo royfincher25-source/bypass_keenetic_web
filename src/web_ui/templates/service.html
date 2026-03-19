@@ -84,7 +84,7 @@ async function updateStats() {
         // DNS
         const dnsInfo = data.dns_status;
         let dnsText = '';
-        if (dnsInfo.running) {
+        if (dnsInfo && dnsInfo.running) {
             dnsText = `✅ ${dnsInfo.current_server || 'N/A'} | Failures: ${dnsInfo.failures}`;
         } else {
             dnsText = '⏸️ Остановлен';
