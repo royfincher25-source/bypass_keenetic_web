@@ -1110,7 +1110,6 @@ def service_updates_run():
     progress = UpdateProgress()
     
     try:
-        progress.start_update()
         flash('⏳ Создание резервной копии...', 'info')
         
         # Create backup before update
@@ -1212,6 +1211,9 @@ def service_updates_run():
         updated_count = 0
         error_count = 0
         total_files = len(files_to_update)
+        
+        # Start progress tracking after we know total files
+        progress.start_update(total_files=total_files)
         
         for i, (source_path, dest_path) in enumerate(files_to_update.items(), 1):
             # VERSION file is in root, others are in src/

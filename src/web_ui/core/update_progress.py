@@ -17,10 +17,11 @@ class UpdateProgress:
                 cls._instance.error = None
             return cls._instance
     
-    def start_update(self):
+    def start_update(self, total_files=0):
         self.status = 'starting'
         self.message = 'Creating backup...'
         self.progress = 0
+        self.total_files = total_files
         self.error = None
     
     def update_progress(self, message, file='', progress=0, total=0):

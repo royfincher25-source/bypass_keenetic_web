@@ -41,3 +41,28 @@ def test_update_reports_progress():
     progress = UpdateProgress()
     progress.start_update()
     assert progress.status == 'starting'
+
+def test_complete_update_flow():
+    # Test complete flow from button click to progress display
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'web_ui', 'core'))
+    from update_progress import UpdateProgress
+    
+    # Test progress tracking through entire flow
+    progress = UpdateProgress()
+    progress.start_update()
+    assert progress.status == 'starting'
+    
+    progress.update_progress('Downloading file', 'routes.py', 1, 10)
+    assert progress.current_file == 'routes.py'
+    assert progress.progress == 1
+    assert progress.total_files == 10
+    
+    progress.complete()
+    assert progress.status == 'complete'
+    
+    # Test error handling
+    progress.reset()
+    progress.start_update()
+    progress.set_error('Test error')
+    assert progress.status == 'error'
+    assert progress.error == 'Test error'
