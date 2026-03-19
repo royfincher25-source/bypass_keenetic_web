@@ -1104,8 +1104,13 @@ def service_updates_run():
     """
     from datetime import datetime
     import shutil
+    from core.update_progress import UpdateProgress
+    
+    # Get progress instance
+    progress = UpdateProgress()
     
     try:
+        progress.start_update()
         flash('⏳ Создание резервной копии...', 'info')
         
         # Create backup before update
@@ -1206,13 +1211,18 @@ def service_updates_run():
         
         updated_count = 0
         error_count = 0
+        total_files = len(files_to_update)
         
-        for source_path, dest_path in files_to_update.items():
+        for i, (source_path, dest_path) in enumerate(files_to_update.items(), 1):
             # VERSION file is in root, others are in src/
             if source_path == 'VERSION':
                 url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/VERSION'
             else:
                 url = f'https://raw.githubusercontent.com/{github_repo}/{github_branch}/src/{source_path}'
+            
+            # Update progress
+            progress.update_progress(f'Загрузка {source_path}', file=source_path, progress=i, total=total_files)
+            
             try:
                 response = requests.get(url, timeout=60)
                 response.raise_for_status()
@@ -1237,6 +1247,8 @@ def service_updates_run():
         
         # Apply updated scripts
         try:
+            progress.update_progress('Запуск unblock_update.sh', file='unblock_update.sh')
+            
             # Run bypass update scripts
             if os.path.exists('/opt/bin/unblock_update.sh'):
                 result = subprocess.run(['/opt/bin/unblock_update.sh'], timeout=120, capture_output=True, text=True)
@@ -1245,6 +1257,8 @@ def service_updates_run():
                 else:
                     logger.info("Ran unblock_update.sh")
             
+            progress.update_progress('Запуск unblock_dnsmasq.sh', file='unblock_dnsmasq.sh')
+            
             if os.path.exists('/opt/bin/unblock_dnsmasq.sh'):
                 result = subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=120, capture_output=True, text=True)
                 if result.returncode != 0:
@@ -1252,14 +1266,20 @@ def service_updates_run():
                 else:
                     logger.info("Ran unblock_dnsmasq.sh")
             
+            progress.update_progress('Перезапуск S99unblock', file='S99unblock')
+            
             # Restart related services
             if os.path.exists('/opt/etc/init.d/S99unblock'):
                 subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], timeout=60)
                 logger.info("Restarted S99unblock")
             
+            progress.update_progress('Перезапуск S56dnsmasq', file='S56dnsmasq')
+            
             if os.path.exists('/opt/etc/init.d/S56dnsmasq'):
                 subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], timeout=60)
                 logger.info("Restarted S56dnsmasq")
+            
+            progress.update_progress('Перезапуск S99web_ui', file='S99web_ui')
             
             # Restart web UI
             if os.path.exists('/opt/etc/init.d/S99web_ui'):
@@ -1268,19 +1288,34 @@ def service_updates_run():
                 
         except subprocess.TimeoutExpired:
             logger.warning("Script execution timeout")
+            progress.set_error('Script execution timeout')
         except Exception as e:
             logger.warning(f"Failed to run update scripts: {e}")
+            progress.set_error(f'Failed to run scripts: {e}')
         
         if error_count == 0:
+            progress.complete()
             flash(f'✅ Обновление завершено! Обновлено файлов: {updated_count}', 'success')
+            return jsonify({
+                'success': True,
+                'message': f'✅ Обновление завершено! Обновлено файлов: {updated_count}'
+            })
         else:
+            progress.set_error(f'Обновлено: {updated_count}, ошибок: {error_count}')
             flash(f'⚠️ Обновлено: {updated_count}, ошибок: {error_count}', 'warning')
+            return jsonify({
+                'success': False,
+                'error': f'Обновлено: {updated_count}, ошибок: {error_count}'
+            })
             
     except Exception as e:
+        progress.set_error(str(e))
         flash(f'❌ Ошибка обновления: {str(e)}', 'danger')
         logger.error(f"service_updates_run Exception: {e}")
-
-    return redirect(url_for('main.service_updates'))
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 
 @bp.route('/install', methods=['GET', 'POST'])

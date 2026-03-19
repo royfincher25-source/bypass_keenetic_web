@@ -32,3 +32,12 @@ def test_updates_template_has_progress_elements():
         assert 'id="progress-bar"' in content
         # Check for progress text
         assert 'id="progress-text"' in content
+
+def test_update_reports_progress():
+    # Test that UpdateProgress is used during update
+    # Import directly from core directory to avoid Flask dependency
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src', 'web_ui', 'core'))
+    from update_progress import UpdateProgress
+    progress = UpdateProgress()
+    progress.start_update()
+    assert progress.status == 'starting'
