@@ -1218,7 +1218,8 @@ def service_updates_run():
                     f.write(response.text)
                 
                 # Set executable permissions for scripts
-                is_executable = dest_path.endswith('.sh') or dest_path.endswith('S99web_ui') or dest_path.endswith('S99unblock')
+                filename = os.path.basename(dest_path)
+                is_executable = filename.endswith('.sh') or filename in ['S99web_ui', 'S99unblock']
                 os.chmod(dest_path, 0o755 if is_executable else 0o644)
                 logger.info(f"Updated {dest_path}")
                 updated_count += 1
