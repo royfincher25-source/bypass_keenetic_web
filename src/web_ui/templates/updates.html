@@ -16,21 +16,34 @@
         <p class="mb-0">Установленная: <strong>{{ local_version }}</strong></p>
         <p>Доступная: <strong>{{ remote_version }}</strong></p>
         
-        {% if need_update %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> Доступна новая версия! Рекомендуется обновить.
-            </div>
-            <form method="POST" action="{{ url_for('main.service_updates_run') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-download"></i> Обновить
-                </button>
-            </form>
-        {% else %}
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle"></i> У вас установлена последняя версия.
-            </div>
-        {% endif %}
+        <div id="update-section">
+            {% if need_update %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Доступна новая версия! Рекомендуется обновить.
+                </div>
+                <form id="update-form" method="POST" action="{{ url_for('main.service_updates_run') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary" id="update-btn">
+                        <i class="bi bi-download"></i> Обновить
+                    </button>
+                </form>
+                
+                <!-- Progress display (hidden by default) -->
+                <div id="progress-container" style="display: none; margin-top: 20px;">
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                    <div id="progress-text" class="mb-2">Подготовка...</div>
+                    <div id="progress-details" class="small text-muted"></div>
+                    <div id="progress-error" class="alert alert-danger mt-2" style="display: none;"></div>
+                </div>
+            {% else %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> У вас установлена последняя версия.
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -67,4 +80,99 @@
         </div>
     </div>
 </div>
+
+<script>
+// JavaScript for AJAX progress updates
+let progressInterval = null;
+
+document.getElementById('update-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Hide button, show progress
+    document.getElementById('update-btn').style.display = 'none';
+    document.getElementById('progress-container').style.display = 'block';
+    
+    // Start progress polling
+    progressInterval = setInterval(updateProgress, 1000);
+    
+    // Submit form via AJAX
+    const formData = new FormData(this);
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        if (data.success) {
+            showCompletion(data.message);
+        } else {
+            showError(data.error || 'Update failed');
+        }
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        showError('Network error: ' + error.message);
+    });
+});
+
+function updateProgress() {
+    fetch('/api/update/progress')
+        .then(response => response.json())
+        .then(data => {
+            updateProgressBar(data);
+        })
+        .catch(error => {
+            console.error('Failed to get progress:', error);
+        });
+}
+
+function updateProgressBar(data) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const progressDetails = document.getElementById('progress-details');
+    
+    let percentage = 0;
+    if (data.total_files > 0) {
+        percentage = Math.round((data.progress / data.total_files) * 100);
+    }
+    
+    progressBar.style.width = percentage + '%';
+    progressBar.textContent = percentage + '%';
+    progressText.textContent = data.message;
+    
+    if (data.current_file) {
+        progressDetails.textContent = 'Файл: ' + data.current_file;
+    } else {
+        progressDetails.textContent = '';
+    }
+    
+    if (data.status === 'error') {
+        showError(data.error);
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('progress-error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    document.getElementById('progress-bar').classList.remove('progress-bar-animated');
+    document.getElementById('progress-bar').classList.add('bg-danger');
+}
+
+function showCompletion(message) {
+    const progressBar = document.getElementById('progress-bar');
+    progressBar.style.width = '100%';
+    progressBar.textContent = '100%';
+    progressBar.classList.remove('progress-bar-animated');
+    progressBar.classList.add('bg-success');
+    document.getElementById('progress-text').textContent = message;
+    document.getElementById('progress-details').textContent = '';
+    
+    // Reload page after 3 seconds
+    setTimeout(() => {
+        window.location.reload();
+    }, 3000);
+}
+</script>
 {% endblock %}

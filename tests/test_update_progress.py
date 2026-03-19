@@ -20,3 +20,15 @@ def test_progress_endpoint_exists():
     with open(routes_file, 'r', encoding='utf-8') as f:
         content = f.read()
         assert "'/api/update/progress'" in content or '"/api/update/progress"' in content
+
+def test_updates_template_has_progress_elements():
+    # Test that template contains progress bar elements
+    template_file = os.path.join(os.path.dirname(__file__), '..', 'src', 'web_ui', 'templates', 'updates.html')
+    with open(template_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+        # Check for progress container
+        assert 'id="progress-container"' in content
+        # Check for progress bar
+        assert 'id="progress-bar"' in content
+        # Check for progress text
+        assert 'id="progress-text"' in content
