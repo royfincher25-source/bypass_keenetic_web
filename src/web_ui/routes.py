@@ -1143,6 +1143,7 @@ def service_updates_run():
             # Web UI core files
             'web_ui/routes.py': '/opt/etc/web_ui/routes.py',
             'web_ui/app.py': '/opt/etc/web_ui/app.py',
+            'web_ui/env_parser.py': '/opt/etc/web_ui/env_parser.py',
             'web_ui/core/utils.py': '/opt/etc/web_ui/core/utils.py',
             'web_ui/core/services.py': '/opt/etc/web_ui/core/services.py',
             'web_ui/core/dns_monitor.py': '/opt/etc/web_ui/core/dns_monitor.py',
@@ -1186,7 +1187,9 @@ def service_updates_run():
                 with open(dest_path, 'w', encoding='utf-8') as f:
                     f.write(response.text)
                 
-                os.chmod(dest_path, 0o755 if dest_path.endswith('.sh') else 0o644)
+                # Set executable permissions for scripts
+                is_executable = dest_path.endswith('.sh') or dest_path.endswith('S99web_ui') or dest_path.endswith('S99unblock')
+                os.chmod(dest_path, 0o755 if is_executable else 0o644)
                 logger.info(f"Updated {dest_path}")
                 updated_count += 1
                 

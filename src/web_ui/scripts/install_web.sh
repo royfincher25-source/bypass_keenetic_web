@@ -166,13 +166,13 @@ log_info "⏳ Загрузка скрипта установки bypass_keenetic
 mkdir -p scripts
 cd scripts
 
-printf "  → %-20s" "script.sh"
-if curl -sL -o "script.sh" "$BASE_URL/scripts/script.sh"; then
-    chmod 755 "script.sh"
-    echo " ✅"
-else
-    echo " ❌"
-fi
+    printf "  → %-20s" "script.sh"
+    if curl -sL -o "script.sh" "$BASE_URL/scripts/script.sh"; then
+        chmod 755 "script.sh"
+        echo " ✅"
+    else
+        echo " ❌"
+    fi
 cd ..
 
 # =============================================================================
