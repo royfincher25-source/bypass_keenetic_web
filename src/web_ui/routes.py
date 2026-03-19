@@ -971,14 +971,18 @@ def get_backup_list():
     
     if os.path.exists(backup_dir):
         for item in sorted(os.listdir(backup_dir), reverse=True):
-            if item.startswith('backup_') and item.endswith('.tar.gz'):
+            if (item.startswith('backup_') or item.startswith('update_backup_')) and item.endswith('.tar.gz'):
                 item_path = os.path.join(backup_dir, item)
                 try:
                     size = os.path.getsize(item_path)
-                    # Extract date from filename: backup_YYYYMMDD_HHMMSS.tar.gz
-                    match = re.match(r'backup_(\d{8})_(\d{6})\.tar\.gz', item)
-                    date_str = match.group(1) if match else item
-                    time_str = match.group(2) if match else ''
+                    # Extract date from filename: backup_YYYYMMDD_HHMMSS.tar.gz or update_backup_YYYYMMDD_HHMMSS.tar.gz
+                    match = re.match(r'(backup|update_backup)_(\d{8})_(\d{6})\.tar\.gz', item)
+                    if match:
+                        date_str = match.group(2)
+                        time_str = match.group(3)
+                    else:
+                        date_str = item
+                        time_str = ''
                     
                     backups.append({
                         'name': item,
@@ -1235,20 +1239,20 @@ def service_updates_run():
         try:
             # Run bypass update scripts
             if os.path.exists('/opt/bin/unblock_update.sh'):
-                subprocess.run(['/opt/bin/unblock_update.sh'], timeout=30)
+                subprocess.run(['/opt/bin/unblock_update.sh'], timeout=120)
                 logger.info("Ran unblock_update.sh")
             
             if os.path.exists('/opt/bin/unblock_dnsmasq.sh'):
-                subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=30)
+                subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=120)
                 logger.info("Ran unblock_dnsmasq.sh")
             
             # Restart related services
             if os.path.exists('/opt/etc/init.d/S99unblock'):
-                subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], timeout=30)
+                subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], timeout=60)
                 logger.info("Restarted S99unblock")
             
             if os.path.exists('/opt/etc/init.d/S56dnsmasq'):
-                subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], timeout=30)
+                subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], timeout=60)
                 logger.info("Restarted S56dnsmasq")
             
             # Restart web UI
