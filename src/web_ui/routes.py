@@ -1577,6 +1577,15 @@ def system_stats():
     return jsonify(stats)
 
 
+@bp.route('/api/update/progress', methods=['GET'])
+@login_required
+def get_update_progress():
+    """Get update progress status"""
+    from core.update_progress import UpdateProgress
+    progress = UpdateProgress()
+    return jsonify(progress.get_status())
+
+
 @bp.route('/api/system/memory-manager/<action>', methods=['POST'])
 @login_required
 def memory_manager_action(action):

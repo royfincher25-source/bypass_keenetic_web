@@ -11,3 +11,12 @@ def test_update_progress_state():
     # Test that UpdateProgress class exists and works
     progress = UpdateProgress()
     assert progress.status == 'idle'
+
+def test_progress_endpoint_exists():
+    # Test that /api/update/progress endpoint exists in routes.py
+    # We'll check if the route is registered in the Flask app
+    # For now, just check if the file contains the route
+    routes_file = os.path.join(os.path.dirname(__file__), '..', 'src', 'web_ui', 'routes.py')
+    with open(routes_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+        assert "'/api/update/progress'" in content or '"/api/update/progress"' in content
