@@ -67,17 +67,24 @@ async function updateStats() {
     try {
         const resp = await fetch('/api/system/stats');
         const data = await resp.json();
-        
-        // RAM
-        const memPercent = data.percent || 0;
+
+        // RAM - use percent (excluding cache) for accurate display
+        const memPercent = data.percent || 0;  // Real percent excluding cache
         const memBar = document.getElementById('mem-bar');
         memBar.style.width = memPercent + '%';
         memBar.textContent = memPercent + '%';
+        
+        // Color based on real usage (excluding cache)
         if (memPercent > 80) memBar.className = 'progress-bar bg-danger';
         else if (memPercent > 60) memBar.className = 'progress-bar bg-warning';
         else memBar.className = 'progress-bar bg-success';
-        document.getElementById('mem-text').textContent = 
-            `${data.used_mb}MB / ${data.total_mb}MB (свободно: ${data.available_mb || data.free_mb}MB)`;
+        
+        // Show detailed memory info with cache breakdown
+        const usedDisplay = data.real_used_mb || data.used_mb;
+        const cacheDisplay = data.cached_mb ? ` (кэш: ${data.cached_mb}MB)` : '';
+        const freeDisplay = `(свободно: ${data.available_mb || data.free_mb}MB)`;
+        document.getElementById('mem-text').textContent =
+            `${usedDisplay}MB / ${data.total_mb}MB${cacheDisplay} ${freeDisplay}`;
         
         // Cache
         const cacheEntries = data.cache_entries || 0;

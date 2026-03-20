@@ -719,24 +719,31 @@ def get_memory_stats() -> dict:
         buffers = mem.get('Buffers', 0) / 1024
         cached = mem.get('Cached', 0) / 1024
         available = mem.get('MemAvailable', 0) / 1024  # MB (if available in kernel)
-        
+
         # Calculate used memory
-        # If MemAvailable is provided (kernel 3.14+), use it
+        # MemAvailable already includes buffers + cached that can be freed
         if available > 0:
             used = total - available
+            # Real used memory (excluding reclaimable cache)
+            real_used = used
         else:
             # Fallback: estimate used memory
-            # This is less accurate but works on older kernels
             used = total - free - buffers - cached
-        
-        # For display purposes, show available memory
+            real_used = used
+
+        # For display purposes
         if available > 0:
             display_available = available
         else:
             display_available = free + buffers + cached
+
+        # Calculate percentage based on real used memory (excluding cache)
+        # This gives more accurate picture for embedded devices
+        percent = (real_used / total * 100) if total > 0 else 0
         
-        percent = (used / total * 100) if total > 0 else 0
-        
+        # Also calculate "raw" percentage (including cache) for reference
+        raw_percent = (used / total * 100) if total > 0 else 0
+
         try:
             cache_stats = Cache.get_stats()
             cache_entries = cache_stats['entries']
@@ -744,14 +751,17 @@ def get_memory_stats() -> dict:
         except AttributeError:
             cache_entries = 0
             cache_max = 30
-        
+
         return {
             'total_mb': round(total, 1),
             'used_mb': round(used, 1),
             'free_mb': round(free, 1),
             'available_mb': round(display_available, 1),
             'cached_mb': round(cached, 1),
-            'percent': round(percent, 1),
+            'buffers_mb': round(buffers, 1),
+            'real_used_mb': round(real_used, 1),  # Excluding cache
+            'percent': round(percent, 1),  # Real percent (excluding cache)
+            'raw_percent': round(raw_percent, 1),  # Raw percent (including cache)
             'cache_entries': cache_entries,
             'cache_max': cache_max,
         }
