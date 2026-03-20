@@ -472,13 +472,11 @@ def view_bypass(filename: str):
 @csrf_required
 def add_to_bypass(filename: str):
     """
-    Add entries to a bypass list file.
-
-    Args:
-        filename: Name of bypass list file (without .txt extension)
-
-    Returns:
-        Redirect to view page after processing
+    Add entries to a bypass list file with optimized processing.
+    
+    Optimized for KN-1212 (128MB RAM):
+    - Direct IP addition to ipset without full update
+    - Only run full update for domain additions
     """
     config = WebConfig()
     
@@ -520,6 +518,7 @@ def add_to_bypass(filename: str):
         added_count = 0
         invalid_entries = []
         ip_entries = []  # Отдельно собираем IP для добавления в ipset
+        domain_entries = []  # Отдельно собираем домены
 
         for entry in new_entries:
             if entry not in current_list:
@@ -529,30 +528,38 @@ def add_to_bypass(filename: str):
                     # Если это IP адрес - добавляем в список для ipset
                     if is_ip_address(entry):
                         ip_entries.append(entry)
+                    else:
+                        domain_entries.append(entry)
                 else:
                     invalid_entries.append(entry)
 
         # Сохраняем список
         save_bypass_list(filepath, current_list)
 
-        # Bulk добавление в ipset (быстро!)
-        ipset_msg = ''
-        if ip_entries:
-            # Убеждаемся что ipset существует
-            success, msg = ensure_ipset_exists('unblock')
-            if success:
-                # Bulk добавление IP
-                success, msg = bulk_add_to_ipset('unblock', ip_entries)
-                ipset_msg = f" IP в ipset: {len(ip_entries)}"
-                logger.info(f"ipset: {msg}")
-
-        # Применяем изменения
+        # Оптимизированная логика обновления
         if added_count > 0:
-            success, output = run_unblock_update()
-            if success:
-                flash(f'✅ Успешно добавлено: {added_count} шт.{ipset_msg}. Изменения применены', 'success')
+            # Если только IP-адреса - добавляем напрямую в ipset
+            if ip_entries and not domain_entries:
+                success, msg = bulk_add_to_ipset('unblock', ip_entries)
+                if success:
+                    logger.info(f"Directly added {len(ip_entries)} IPs to ipset")
+                    flash(f'✅ Успешно добавлено: {added_count} шт. (IP в ipset: {len(ip_entries)})', 'success')
+                else:
+                    logger.warning(f"Failed to add IPs directly: {msg}")
+                    # Fall back to full update
+                    success, output = run_unblock_update()
+                    if success:
+                        flash(f'✅ Успешно добавлено: {added_count} шт. Изменения применены', 'success')
+                    else:
+                        flash(f'⚠️ Добавлено {added_count} записей, но ошибка при применении: {output}', 'warning')
             else:
-                flash(f'⚠️ Добавлено {added_count} записей, но ошибка при применении: {output}', 'warning')
+                # Для доменов или смешанных записей - использовать полное обновление
+                if added_count > 0:
+                    success, output = run_unblock_update()
+                    if success:
+                        flash(f'✅ Успешно добавлено: {added_count} шт. Изменения применены', 'success')
+                    else:
+                        flash(f'⚠️ Добавлено {added_count} записей, но ошибка при применении: {output}', 'warning')
         elif invalid_entries:
             # XSS protection: escape user input
             escaped_invalid = [escape(e) for e in invalid_entries[:5]]
