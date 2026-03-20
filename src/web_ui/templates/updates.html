@@ -14,9 +14,36 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-body">
-        <h5 class="card-title">Текущая версия</h5>
-        <p class="mb-0">Установленная: <strong>{{ local_version }}</strong></p>
-        <p>Доступная: <strong>{{ remote_version }}</strong></p>
+        <h5 class="card-title">
+            {% if need_update %}
+                <i class="bi bi-exclamation-triangle text-warning"></i> Доступно обновление
+            {% else %}
+                <i class="bi bi-check-circle text-success"></i> Актуальная версия
+            {% endif %}
+        </h5>
+        
+        <div class="version-comparison p-3 rounded {% if need_update %}bg-warning bg-opacity-10{% else %}bg-success bg-opacity-10{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span><i class="bi bi-pc-display"></i> Установленная:</span>
+                <strong class="fs-5">{{ local_version }}</strong>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cloud-download"></i> Доступная:</span>
+                {% if need_update %}
+                <strong class="fs-5 text-warning">
+                    {{ remote_version }}
+                    <i class="bi bi-arrow-up-circle-fill ms-1"></i>
+                    <span class="badge bg-warning text-dark ms-2">NEW</span>
+                </strong>
+                {% else %}
+                <strong class="fs-5 text-success">
+                    {{ remote_version }}
+                    <i class="bi bi-check-circle-fill ms-1"></i>
+                    <span class="badge bg-success ms-2">Latest</span>
+                </strong>
+                {% endif %}
+            </div>
+        </div>
 
         <div id="update-section">
             {% if need_update %}
