@@ -6,9 +6,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-arrow-repeat"></i> Обновления</h2>
     <div>
-        <a href="{{ url_for('main.service_backup') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-archive"></i> Архивация
-        </a>
         <a href="{{ url_for('main.service') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Назад
         </a>
@@ -80,8 +77,13 @@
             </div>
         </div>
         
-        <div class="alert alert-info mt-3 mb-0">
-            <i class="bi bi-download"></i> Перед обновлением автоматически создаётся резервная копия в /opt/root/backup/
+        <div class="alert alert-info mt-3 mb-0 d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-download"></i> Перед обновлением автоматически создаётся резервная копия в /opt/root/backup/
+            </div>
+            <a href="{{ url_for('main.service_backup') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-archive"></i> Архивация
+            </a>
         </div>
     </div>
 </div>
