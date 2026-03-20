@@ -1326,24 +1326,51 @@ def service_updates_run():
                     logger.info("Ran unblock_dnsmasq.sh")
             
             progress.update_progress('Перезапуск S99unblock', file='S99unblock')
-            
-            # Restart related services
+
+            # Restart related services with error handling
             if os.path.exists('/opt/etc/init.d/S99unblock'):
-                subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], timeout=60)
-                logger.info("Restarted S99unblock")
-            
+                try:
+                    result = subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], 
+                                          timeout=60, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        logger.warning(f"S99unblock restart failed: {result.stderr}")
+                    else:
+                        logger.info("Restarted S99unblock")
+                except subprocess.TimeoutExpired:
+                    logger.warning("S99unblock restart timeout")
+                except Exception as e:
+                    logger.warning(f"S99unblock restart error: {e}")
+
             progress.update_progress('Перезапуск S56dnsmasq', file='S56dnsmasq')
-            
+
             if os.path.exists('/opt/etc/init.d/S56dnsmasq'):
-                subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], timeout=60)
-                logger.info("Restarted S56dnsmasq")
-            
+                try:
+                    result = subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], 
+                                          timeout=60, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        logger.warning(f"S56dnsmasq restart failed: {result.stderr}")
+                    else:
+                        logger.info("Restarted S56dnsmasq")
+                except subprocess.TimeoutExpired:
+                    logger.warning("S56dnsmasq restart timeout")
+                except Exception as e:
+                    logger.warning(f"S56dnsmasq restart error: {e}")
+
             progress.update_progress('Перезапуск S99web_ui', file='S99web_ui')
-            
+
             # Restart web UI
             if os.path.exists('/opt/etc/init.d/S99web_ui'):
-                subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], timeout=30)
-                logger.info("Restarted S99web_ui")
+                try:
+                    result = subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], 
+                                          timeout=30, capture_output=True, text=True)
+                    if result.returncode != 0:
+                        logger.warning(f"S99web_ui restart failed: {result.stderr}")
+                    else:
+                        logger.info("Restarted S99web_ui")
+                except subprocess.TimeoutExpired:
+                    logger.warning("S99web_ui restart timeout")
+                except Exception as e:
+                    logger.warning(f"S99web_ui restart error: {e}")
                 
         except subprocess.TimeoutExpired:
             logger.warning("Script execution timeout")
