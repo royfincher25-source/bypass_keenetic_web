@@ -60,12 +60,16 @@
         
         {% if backups %}
         <style>
-        /* Нижний отступ таблицы 3.5rem */
-        .backup-table {
+        /* Нижний отступ card-body 3.5rem */
+        .card-body .backup-table-container {
             margin-bottom: 3.5rem !important;
         }
+        /* Стандартный отступ для строк таблицы */
+        .backup-table tbody tr {
+            border-bottom: none !important;
+        }
         </style>
-        <div class="table-responsive">
+        <div class="table-responsive backup-table-container">
             <table class="table table-hover table-sm backup-table">
                 <thead>
                     <tr>
@@ -78,7 +82,7 @@
                 <tbody>
                     {% for backup in backups %}
                     <tr>
-                        <td class="alert-warning">
+                        <td>
                             <code>{{ backup.date }}{% if backup.time %} {{ backup.time }}{% endif %}</code>
                         </td>
                         <td>{{ backup.name }}</td>
