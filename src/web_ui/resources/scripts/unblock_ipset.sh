@@ -119,17 +119,17 @@ process_file() {
 i=0
 
 # Process predefined files
-for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
+for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/hysteria2.txt:unblockhysteria2" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
     file=$(echo "$entry" | cut -d: -f1)
     setname=$(echo "$entry" | cut -d: -f2)
-    
+
     # Ensure ipset exists
     ipset create "$setname" hash:ip 2>/dev/null || true
-    
+
     # Run in background
     process_file "$file" "$setname" $i &
     i=$((i + 1))
-    
+
     # Limit concurrent processes to thread count
     if [ $i -ge $THREAD_COUNT ]; then
         wait

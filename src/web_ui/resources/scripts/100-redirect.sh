@@ -6,7 +6,7 @@
 [ "$type" = "ip6tables" ] && exit 0
 
 # Ensure all required ipsets exist
-for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
+for ipset_name in unblocksh unblockhysteria2 unblocktor unblockvless unblocktroj; do
     ipset create "$ipset_name" hash:net -exist 2>/dev/null
 done
 echo "IPsets ready"

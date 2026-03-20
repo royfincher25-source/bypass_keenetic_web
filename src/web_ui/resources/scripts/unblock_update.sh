@@ -1,6 +1,7 @@
 #!/bin/sh
 ipset flush unblocktor
 ipset flush unblocksh
+ipset flush unblockhysteria2
 ipset flush unblockvless
 ipset flush unblocktroj
 
@@ -23,7 +24,7 @@ echo "Starting ipset population..." | tee -a /opt/var/log/unblock.log
 
 # Verify result
 sleep 2
-for ipset_name in unblocksh unblocktor unblockvless unblocktroj; do
+for ipset_name in unblocksh unblockhysteria2 unblocktor unblockvless unblocktroj; do
     count=$(ipset list "$ipset_name" 2>/dev/null | grep -c "^[0-9]" || echo 0)
     echo "$ipset_name: $count entries" | tee -a /opt/var/log/unblock.log
 done

@@ -42,13 +42,13 @@ mkdir -p "$temp_dir"
 i=0
 
 # Process predefined files
-for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
+for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/hysteria2.txt:unblockhysteria2" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
     file=$(echo "$entry" | cut -d: -f1)
     setname=$(echo "$entry" | cut -d: -f2)
-    
+
     temp_config="$temp_dir/config_$i.txt"
     > "$temp_config"
-    
+
     # Run in background
     generate_config "$file" "$setname" "$temp_config" &
     i=$((i + 1))
