@@ -832,13 +832,20 @@ def service():
     # Проверка статуса DNS Override
     dns_override_enabled = False
     try:
-        # Используем синтаксис Keenetic: | include для фильтрации
-        result = subprocess.run(
-            ['ndmc', '-c', 'show running | include dns-override'],
-            capture_output=True, text=True, timeout=5
-        )
-        dns_override_enabled = (result.returncode == 0 and result.stdout.strip() != '')
-        logger.debug(f"DNS Override status check: returncode={result.returncode}, stdout={result.stdout.strip()}")
+        # Проверяем наличие команды ndmc
+        which_result = subprocess.run(['which', 'ndmc'], capture_output=True, text=True)
+        if which_result.returncode != 0:
+            logger.warning("ndmc command not found, skipping DNS Override check")
+            dns_override_enabled = False
+        else:
+            # Используем синтаксис Keenetic: show running | include dns-override
+            result = subprocess.run(
+                ['ndmc', '-c', 'show running | include dns-override'],
+                capture_output=True, text=True, timeout=5
+            )
+            # Проверяем, содержит ли вывод dns-override
+            dns_override_enabled = (result.returncode == 0 and 'dns-override' in result.stdout.lower())
+            logger.debug(f"DNS Override status check: returncode={result.returncode}, stdout='{result.stdout.strip()}', enabled={dns_override_enabled}")
     except Exception as e:
         logger.error(f"Error checking DNS Override status: {e}")
         dns_override_enabled = False
