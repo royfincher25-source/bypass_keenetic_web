@@ -864,21 +864,22 @@ def service():
             dns_override_enabled = False
         else:
             # Пробуем разные команды для проверки DNS Override
+            # Используем shell=True для поддержки pipe
             commands_to_try = [
-                ['ndmc', '-c', 'show running | include dns-override'],
-                ['ndmc', '-c', 'show dns-override'],
-                ['ndmc', '-c', 'show dns override'],
+                'ndmc -c "show running" | grep -i dns-override',
+                'ndmc -c "show dns-override"',
+                'ndmc -c "show dns override"',
             ]
-            
+
             for cmd in commands_to_try:
                 try:
-                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-                    if result.returncode == 0:
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, shell=True)
+                    if result.returncode == 0 and result.stdout.strip():
                         output = result.stdout.lower()
                         # Проверяем различные варианты
                         if 'dns-override' in output or 'dns override' in output:
                             dns_override_enabled = True
-                            logger.debug(f"DNS Override found with command: {' '.join(cmd)}")
+                            logger.debug(f"DNS Override found with command: {cmd}")
                             break
                         # Также проверяем, если в выводе есть enabled/disabled
                         if 'enabled' in output and 'disabled' not in output:
@@ -887,9 +888,9 @@ def service():
                 except subprocess.TimeoutExpired:
                     continue
                 except Exception as e:
-                    logger.debug(f"Command {' '.join(cmd)} failed: {e}")
+                    logger.debug(f"Command {cmd} failed: {e}")
                     continue
-            
+
             logger.debug(f"DNS Override status: {dns_override_enabled}")
     except Exception as e:
         logger.error(f"Error checking DNS Override status: {e}")
