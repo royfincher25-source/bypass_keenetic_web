@@ -94,9 +94,10 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
         'type': params.get('type', ['tcp'])[0],
         'path': params.get('path', ['/'])[0],
         'host': params.get('host', [server])[0],
+        'flow': params.get('flow', [''])[0],  # XTLS Vision flow
         'name': parsed.fragment or 'VLESS',
     }
-    
+
     # Handle different security types
     if result['security'] == 'reality':
         result['pbk'] = params.get('pbk', [''])[0]
@@ -158,7 +159,7 @@ def vless_config(key: str) -> Dict[str, Any]:
                                 {
                                     'id': parsed['uuid'],
                                     'encryption': 'none',
-                                    'flow': '',
+                                    'flow': parsed.get('flow', ''),  # XTLS Vision
                                     'level': 8,
                                     'security': 'auto',
                                 }
