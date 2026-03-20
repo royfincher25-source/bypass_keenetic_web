@@ -1306,8 +1306,13 @@ def service_updates_run():
         
         # Apply updated scripts
         try:
-            progress.update_progress('Запуск unblock_update.sh', file='unblock_update.sh')
-            
+            # Add script execution steps to total
+            script_steps = 5  # unblock_update, unblock_dnsmasq, S99unblock, S56dnsmasq, S99web_ui
+            total_steps = total_files + script_steps
+            current_step = total_files  # Start from where file download ended
+
+            progress.update_progress('Запуск unblock_update.sh', file='unblock_update.sh', progress=current_step, total=total_steps)
+
             # Run bypass update scripts
             if os.path.exists('/opt/bin/unblock_update.sh'):
                 result = subprocess.run(['/opt/bin/unblock_update.sh'], timeout=120, capture_output=True, text=True)
@@ -1315,22 +1320,24 @@ def service_updates_run():
                     logger.error(f"unblock_update.sh failed with code {result.returncode}: {result.stderr}")
                 else:
                     logger.info("Ran unblock_update.sh")
-            
-            progress.update_progress('Запуск unblock_dnsmasq.sh', file='unblock_dnsmasq.sh')
-            
+            current_step += 1
+
+            progress.update_progress('Запуск unblock_dnsmasq.sh', file='unblock_dnsmasq.sh', progress=current_step, total=total_steps)
+
             if os.path.exists('/opt/bin/unblock_dnsmasq.sh'):
                 result = subprocess.run(['/opt/bin/unblock_dnsmasq.sh'], timeout=120, capture_output=True, text=True)
                 if result.returncode != 0:
                     logger.error(f"unblock_dnsmasq.sh failed with code {result.returncode}: {result.stderr}")
                 else:
                     logger.info("Ran unblock_dnsmasq.sh")
-            
-            progress.update_progress('Перезапуск S99unblock', file='S99unblock')
+            current_step += 1
+
+            progress.update_progress('Перезапуск S99unblock', file='S99unblock', progress=current_step, total=total_steps)
 
             # Restart related services with error handling
             if os.path.exists('/opt/etc/init.d/S99unblock'):
                 try:
-                    result = subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'], 
+                    result = subprocess.run(['/opt/etc/init.d/S99unblock', 'restart'],
                                           timeout=60, capture_output=True, text=True)
                     if result.returncode != 0:
                         logger.warning(f"S99unblock restart failed: {result.stderr}")
@@ -1340,12 +1347,13 @@ def service_updates_run():
                     logger.warning("S99unblock restart timeout")
                 except Exception as e:
                     logger.warning(f"S99unblock restart error: {e}")
+            current_step += 1
 
-            progress.update_progress('Перезапуск S56dnsmasq', file='S56dnsmasq')
+            progress.update_progress('Перезапуск S56dnsmasq', file='S56dnsmasq', progress=current_step, total=total_steps)
 
             if os.path.exists('/opt/etc/init.d/S56dnsmasq'):
                 try:
-                    result = subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'], 
+                    result = subprocess.run(['/opt/etc/init.d/S56dnsmasq', 'restart'],
                                           timeout=60, capture_output=True, text=True)
                     if result.returncode != 0:
                         logger.warning(f"S56dnsmasq restart failed: {result.stderr}")
@@ -1355,13 +1363,14 @@ def service_updates_run():
                     logger.warning("S56dnsmasq restart timeout")
                 except Exception as e:
                     logger.warning(f"S56dnsmasq restart error: {e}")
+            current_step += 1
 
-            progress.update_progress('Перезапуск S99web_ui', file='S99web_ui')
+            progress.update_progress('Перезапуск S99web_ui', file='S99web_ui', progress=current_step, total=total_steps)
 
             # Restart web UI
             if os.path.exists('/opt/etc/init.d/S99web_ui'):
                 try:
-                    result = subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'], 
+                    result = subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'],
                                           timeout=30, capture_output=True, text=True)
                     if result.returncode != 0:
                         logger.warning(f"S99web_ui restart failed: {result.stderr}")
@@ -1371,6 +1380,7 @@ def service_updates_run():
                     logger.warning("S99web_ui restart timeout")
                 except Exception as e:
                     logger.warning(f"S99web_ui restart error: {e}")
+            current_step += 1
                 
         except subprocess.TimeoutExpired:
             logger.warning("Script execution timeout")
