@@ -105,8 +105,15 @@
     }
 
     // Автоматическое показание прелоадера при отправке форм
+    // НЕ показывать для форм с data-no-preloader="true"
     document.addEventListener('submit', function(e) {
         const form = e.target;
+        
+        // Пропускаем формы с data-no-preloader (например, форма обновления)
+        if (form.dataset.noPreloader === 'true') {
+            return;
+        }
+        
         const button = form.querySelector('button[type="submit"]');
         if (button && !button.disabled) {
             button.disabled = true;

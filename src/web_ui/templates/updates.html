@@ -23,7 +23,7 @@
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i> Доступна новая версия! Рекомендуется обновить.
                 </div>
-                <form id="update-form" method="POST" action="{{ url_for('main.service_updates_run') }}">
+                <form id="update-form" method="POST" action="{{ url_for('main.service_updates_run') }}" data-no-preloader="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary" id="update-btn">
                         <i class="bi bi-download"></i> Обновить
