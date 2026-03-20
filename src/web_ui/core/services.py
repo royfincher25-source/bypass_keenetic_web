@@ -67,16 +67,16 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
 
     logger.info(f"VLESS normalized key: {key[:80]}...")
 
-    # Parse URL
-    url = key[8:]  # Remove 'vless://'
+    # Parse URL (keep vless:// for urlparse to work correctly)
+    # urlparse needs the scheme to extract username/hostname
+    # Fix malformed query strings first (e.g., "?&param=value" → "?param=value")
+    if '?&' in key:
+        key = key.replace('?&', '?')
+        logger.debug(f"Fixed malformed URL: {key[:80]}...")
     
-    # Fix malformed query strings (e.g., "?&param=value" → "?param=value")
-    if '?&' in url:
-        url = url.replace('?&', '?')
-        logger.debug(f"Fixed malformed URL: {url[:80]}...")
+    parsed = urlparse(key)
     
-    parsed = urlparse(url)
-    
+    logger.debug(f"Parsed scheme: {parsed.scheme}")
     logger.debug(f"Parsed username: {parsed.username}")
     logger.debug(f"Parsed hostname: {parsed.hostname}")
     logger.debug(f"Parsed port: {parsed.port}")
@@ -85,7 +85,7 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
     # Extract UUID
     uuid = parsed.username
     if not uuid:
-        logger.error(f"UUID not found! Full URL: {url[:100]}")
+        logger.error(f"UUID not found! Full URL: {key[:100]}")
         raise ValueError("UUID не найден в ключе")
     
     # Extract server and port
