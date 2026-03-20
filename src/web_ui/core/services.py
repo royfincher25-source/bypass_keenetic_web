@@ -46,17 +46,25 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
 
     if not key.startswith('vless://'):
         raise ValueError("Неверный формат ключа VLESS")
-    
+
     # Normalize key
     key = key.strip()
+    
+    # Remove non-ASCII characters from fragment (emoji can break URL parsing)
+    if '#' in key:
+        base, fragment = key.split('#', 1)
+        # Keep only ASCII in fragment
+        fragment = fragment.encode('ascii', 'ignore').decode('ascii')
+        key = base + '#' + fragment
+    
     key = ''.join(c for c in key if ord(c) >= 32 or c in '\t\n\r')
     key = unquote(key)
-    
+
     try:
         key = key.encode('ascii', 'ignore').decode('ascii')
     except Exception as e:
         logger.error(f"VLESS ASCII encode error: {e}")
-    
+
     logger.info(f"VLESS normalized key: {key[:80]}...")
 
     # Parse URL
@@ -65,12 +73,19 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
     # Fix malformed query strings (e.g., "?&param=value" → "?param=value")
     if '?&' in url:
         url = url.replace('?&', '?')
+        logger.debug(f"Fixed malformed URL: {url[:80]}...")
     
     parsed = urlparse(url)
+    
+    logger.debug(f"Parsed username: {parsed.username}")
+    logger.debug(f"Parsed hostname: {parsed.hostname}")
+    logger.debug(f"Parsed port: {parsed.port}")
+    logger.debug(f"Parsed query: {parsed.query[:100] if parsed.query else 'None'}")
 
     # Extract UUID
     uuid = parsed.username
     if not uuid:
+        logger.error(f"UUID not found! Full URL: {url[:100]}")
         raise ValueError("UUID не найден в ключе")
     
     # Extract server and port
