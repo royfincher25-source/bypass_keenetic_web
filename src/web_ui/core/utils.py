@@ -639,6 +639,60 @@ class MemoryManager:
         return False, 'normal' if not cls._aggressive_mode else 'aggressive', free_mb
 
 
+def get_cpu_stats() -> dict:
+    """
+    Get CPU usage statistics for the system.
+    
+    Returns:
+        dict with cpu_percent
+    """
+    try:
+        # Read /proc/stat to calculate CPU usage
+        with open('/proc/stat', 'r') as f:
+            lines = f.readlines()
+        
+        # First line contains overall CPU stats
+        for line in lines:
+            if line.startswith('cpu '):
+                parts = line.split()
+                if len(parts) >= 8:
+                    # cpu  user nice system idle iowait irq softirq steal guest guest_nice
+                    user = int(parts[1])
+                    nice = int(parts[2])
+                    system = int(parts[3])
+                    idle = int(parts[4])
+                    iowait = int(parts[5])
+                    
+                    # Calculate total and work time
+                    total = user + nice + system + idle + iowait
+                    work = user + nice + system
+                    
+                    # Get previous stats for delta calculation
+                    if not hasattr(get_cpu_stats, 'prev_total'):
+                        get_cpu_stats.prev_total = 0
+                        get_cpu_stats.prev_work = 0
+                    
+                    # Calculate percentage
+                    total_delta = total - get_cpu_stats.prev_total
+                    work_delta = work - get_cpu_stats.prev_work
+                    
+                    if total_delta > 0:
+                        cpu_percent = (work_delta / total_delta) * 100
+                    else:
+                        cpu_percent = 0
+                    
+                    # Update previous stats
+                    get_cpu_stats.prev_total = total
+                    get_cpu_stats.prev_work = work
+                    
+                    return {'cpu_percent': round(cpu_percent, 1)}
+        
+        return {'cpu_percent': 0}
+    except Exception as e:
+        logger.error(f"Failed to get CPU stats: {e}")
+        return {'cpu_percent': 0}
+
+
 def get_memory_stats() -> dict:
     """
     Get memory usage statistics for the system.

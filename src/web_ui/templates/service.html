@@ -23,21 +23,28 @@
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h6><i class="bi bi-memory"></i> RAM</h6>
                 <div class="progress mb-2" style="height: 25px;">
                     <div class="progress-bar" id="mem-bar" role="progressbar" style="width: 0%">0%</div>
                 </div>
                 <small id="mem-text">Загрузка...</small>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <h6><i class="bi bi-cpu"></i> CPU</h6>
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar bg-warning" id="cpu-bar" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <small id="cpu-text">Загрузка...</small>
+            </div>
+            <div class="col-md-3">
                 <h6><i class="bi bi-database"></i> Cache</h6>
                 <div class="progress mb-2" style="height: 25px;">
                     <div class="progress-bar bg-info" id="cache-bar" role="progressbar" style="width: 0%">0</div>
                 </div>
                 <small id="cache-text">Загрузка...</small>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h6><i class="bi bi-wifi"></i> DNS</h6>
                 <small id="dns-status">Загрузка...</small>
                 <div class="mt-2">
@@ -80,6 +87,16 @@ async function updateStats() {
         cacheBar.style.width = cachePercent + '%';
         cacheBar.textContent = `${cacheEntries}/${cacheMax}`;
         document.getElementById('cache-text').textContent = 'LRU entries';
+        
+        // CPU
+        const cpuPercent = data.cpu_percent || 0;
+        const cpuBar = document.getElementById('cpu-bar');
+        cpuBar.style.width = cpuPercent + '%';
+        cpuBar.textContent = cpuPercent + '%';
+        if (cpuPercent > 80) cpuBar.className = 'progress-bar bg-danger';
+        else if (cpuPercent > 60) cpuBar.className = 'progress-bar bg-warning';
+        else cpuBar.className = 'progress-bar bg-success';
+        document.getElementById('cpu-text').textContent = cpuPercent + '% загрузки';
         
         // DNS
         const dnsInfo = data.dns_status;

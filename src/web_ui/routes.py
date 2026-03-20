@@ -1612,10 +1612,12 @@ def dns_monitor_check():
 @login_required
 def system_stats():
     """Get system memory and cache statistics"""
-    from core.utils import get_memory_stats, MemoryManager
+    from core.utils import get_memory_stats, get_cpu_stats, MemoryManager
     from core.dns_monitor import get_dns_monitor
     
     stats = get_memory_stats()
+    cpu_stats = get_cpu_stats()
+    stats.update(cpu_stats)
     stats['memory_manager'] = MemoryManager.get_status()
     
     monitor = get_dns_monitor()
