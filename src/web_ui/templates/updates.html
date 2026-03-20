@@ -17,7 +17,7 @@
         <h5 class="card-title">Текущая версия</h5>
         <p class="mb-0">Установленная: <strong>{{ local_version }}</strong></p>
         <p>Доступная: <strong>{{ remote_version }}</strong></p>
-        
+
         <div id="update-section">
             {% if need_update %}
                 <div class="alert alert-warning">
@@ -29,11 +29,11 @@
                         <i class="bi bi-download"></i> Обновить
                     </button>
                 </form>
-                
+
                 <!-- Progress display (hidden by default) -->
                 <div id="progress-container" style="display: none; margin-top: 20px;">
                     <div class="progress mb-3" style="height: 25px;">
-                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
                              role="progressbar" style="width: 0%">0%</div>
                     </div>
                     <div id="progress-text" class="mb-2">Подготовка...</div>
@@ -52,7 +52,7 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <h5 class="card-title"><i class="bi bi-info-circle"></i> Как работает обновление</h5>
-        
+
         <div class="row">
             <div class="col-md-6">
                 <h6 class="text-success"><i class="bi bi-check-circle"></i> Будет обновлено:</h6>
@@ -76,7 +76,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <div class="alert alert-info mt-3 mb-0 d-flex justify-content-between align-items-center">
             <div>
                 <i class="bi bi-download"></i> Перед обновлением автоматически создаётся резервная копия в /opt/root/backup/
@@ -87,65 +87,74 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 // JavaScript for AJAX progress updates
+// Отключаем глобальный прелоадер из base.html для этой страницы
+// Используем собственный прогресс-бар
+
 let progressInterval = null;
 
-document.getElementById('update-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Hide button, show progress
-    document.getElementById('update-btn').style.display = 'none';
-    document.getElementById('progress-container').style.display = 'block';
-    
-    // Start progress polling (increased interval for KN-1212)
-    progressInterval = setInterval(updateProgress, 3000);
-    
-    // Remove animation from progress bar immediately
-    document.getElementById('progress-bar').classList.remove('progress-bar-animated');
-    
-    // Submit form via AJAX
-    const formData = new FormData(this);
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            // Handle different HTTP errors
-            if (response.status === 401) {
-                throw new Error('Требуется аутентификация. Пожалуйста, войдите снова.');
-            } else if (response.status === 400) {
-                throw new Error('Ошибка запроса. Проверьте данные и попробуйте снова.');
-            } else {
-                throw new Error(`Ошибка сервера: ${response.status}`);
-            }
-        }
-        return response.json();
-    })
-    .then(data => {
-        clearInterval(progressInterval);
-        if (data.success) {
-            showCompletion(data.message);
-        } else {
-            showError(data.error || 'Update failed');
-        }
-    })
-    .catch(error => {
-        clearInterval(progressInterval);
-        showError('Ошибка: ' + error.message);
-        
-        // Redirect to login if authentication error
-        if (error.message.includes('аутентификация') || error.message.includes('Authentication')) {
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
-        }
-    });
+// Отменяем стандартный обработчик из base.html для формы обновления
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('update-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Hide button, show progress
+            document.getElementById('update-btn').style.display = 'none';
+            document.getElementById('progress-container').style.display = 'block';
+
+            // Start progress polling
+            progressInterval = setInterval(updateProgress, 3000);
+
+            // Remove animation from progress bar
+            document.getElementById('progress-bar').classList.remove('progress-bar-animated');
+
+            // Submit form via AJAX
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Требуется аутентификация. Пожалуйста, войдите снова.');
+                    } else if (response.status === 400) {
+                        throw new Error('Ошибка запроса. Проверьте данные и попробуйте снова.');
+                    } else {
+                        throw new Error(`Ошибка сервера: ${response.status}`);
+                    }
+                }
+                return response.json();
+            })
+            .then(data => {
+                clearInterval(progressInterval);
+                if (data.success) {
+                    showCompletion(data.message);
+                } else {
+                    showError(data.error || 'Update failed');
+                }
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                showError('Ошибка: ' + error.message);
+
+                if (error.message.includes('аутентификация') || error.message.includes('Authentication')) {
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                }
+            });
+        });
+    }
 });
 
 function updateProgress() {
@@ -156,10 +165,9 @@ function updateProgress() {
     })
         .then(response => {
             if (!response.ok) {
-                // Don't throw error for 401/403, just stop polling
                 if (response.status === 401 || response.status === 403) {
                     console.warn('Authentication required, stopping progress polling');
-                    return null; // Return null to indicate stopped polling
+                    return null;
                 }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -172,7 +180,6 @@ function updateProgress() {
         })
         .catch(error => {
             console.error('Failed to get progress:', error);
-            // Stop polling on error
             if (progressInterval) {
                 clearInterval(progressInterval);
             }
@@ -183,25 +190,22 @@ function updateProgressBar(data) {
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
     const progressDetails = document.getElementById('progress-details');
-    
+
     let percentage = 0;
     if (data.total_files > 0) {
         percentage = Math.round((data.progress / data.total_files) * 100);
     }
-    
+
     progressBar.style.width = percentage + '%';
     progressBar.textContent = percentage + '%';
-    
-    // Display message (shows script execution status)
     progressText.textContent = data.message;
-    
-    // Display current file name separately for clarity
+
     if (data.current_file) {
         progressDetails.textContent = 'Файл: ' + data.current_file;
     } else {
         progressDetails.textContent = '';
     }
-    
+
     if (data.status === 'error') {
         showError(data.error);
     }
@@ -223,7 +227,7 @@ function showCompletion(message) {
     progressBar.classList.add('bg-success');
     document.getElementById('progress-text').textContent = message;
     document.getElementById('progress-details').textContent = '';
-    
+
     // Reload page after 3 seconds
     setTimeout(() => {
         window.location.reload();
