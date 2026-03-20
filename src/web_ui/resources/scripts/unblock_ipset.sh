@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # unblock_ipset.sh - Optimized version with parallel DNS resolution
 # Optimized for KN-1212 (128MB RAM)
 

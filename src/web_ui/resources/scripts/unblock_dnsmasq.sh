@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # unblock_dnsmasq.sh - Optimized version with parallel generation
 
 mkdir -p /opt/var/log
