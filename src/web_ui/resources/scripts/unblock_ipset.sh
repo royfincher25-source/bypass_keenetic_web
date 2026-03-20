@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # unblock_ipset.sh - Optimized version with parallel DNS resolution
 # Optimized for KN-1212 (128MB RAM)
 
@@ -95,7 +95,7 @@ process_file() {
         fi
         
         # Resolve domain (skip if empty or comment)
-        if [ -n "$line" ] && ! echo "$line" | grep -q '^[[:space:]]*#'; then
+        if [ -n "$line" ] && echo "$line" | grep -qv '^[[:space:]]*#'; then
             # Use nslookup to resolve domain
             ips=$(nslookup "$line" 8.8.8.8 2>/dev/null | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -v '8\.8\.8\.8')
             for ip in $ips; do
@@ -115,25 +115,11 @@ process_file() {
     rm -f "$temp_file"
 }
 
-# Define files to process
-files=(
-    "/opt/etc/unblock/shadowsocks.txt:unblocksh"
-    "/opt/etc/unblock/tor.txt:unblocktor"
-    "/opt/etc/unblock/vless.txt:unblockvless"
-    "/opt/etc/unblock/trojan.txt:unblocktroj"
-)
-
-# Add VPN files
-for vpn_file in /opt/etc/unblock/vpn-*.txt; do
-    if [ -f "$vpn_file" ]; then
-        vpn_name=$(basename "$vpn_file" .txt)
-        files+=("$vpn_file:unblock$vpn_name")
-    fi
-done
-
 # Process files in parallel
 i=0
-for entry in "${files[@]}"; do
+
+# Process predefined files
+for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
     file=$(echo "$entry" | cut -d: -f1)
     setname=$(echo "$entry" | cut -d: -f2)
     
@@ -148,6 +134,27 @@ for entry in "${files[@]}"; do
     if [ $i -ge $THREAD_COUNT ]; then
         wait
         i=0
+    fi
+done
+
+# Add and process VPN files
+for vpn_file in /opt/etc/unblock/vpn-*.txt; do
+    if [ -f "$vpn_file" ]; then
+        vpn_name=$(basename "$vpn_file" .txt)
+        setname="unblock$vpn_name"
+        
+        # Ensure ipset exists
+        ipset create "$setname" hash:ip 2>/dev/null || true
+        
+        # Run in background
+        process_file "$vpn_file" "$setname" $i &
+        i=$((i + 1))
+        
+        # Limit concurrent processes to thread count
+        if [ $i -ge $THREAD_COUNT ]; then
+            wait
+            i=0
+        fi
     fi
 done
 

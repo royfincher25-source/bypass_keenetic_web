@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # unblock_dnsmasq.sh - Optimized version with parallel generation
 
 mkdir -p /opt/var/log
@@ -35,28 +35,14 @@ generate_config() {
     done < "$file"
 }
 
-# Define files to process
-files=(
-    "/opt/etc/unblock/shadowsocks.txt:unblocksh"
-    "/opt/etc/unblock/tor.txt:unblocktor"
-    "/opt/etc/unblock/vless.txt:unblockvless"
-    "/opt/etc/unblock/trojan.txt:unblocktroj"
-)
-
-# Add VPN files
-for vpn_file in /opt/etc/unblock/vpn-*.txt; do
-    if [ -f "$vpn_file" ]; then
-        vpn_name=$(basename "$vpn_file" .txt)
-        files+=("$vpn_file:unblock$vpn_name")
-    fi
-done
-
 # Process files in parallel
 temp_dir="/tmp/dnsmasq_config_$$"
 mkdir -p "$temp_dir"
 
 i=0
-for entry in "${files[@]}"; do
+
+# Process predefined files
+for entry in "/opt/etc/unblock/shadowsocks.txt:unblocksh" "/opt/etc/unblock/tor.txt:unblocktor" "/opt/etc/unblock/vless.txt:unblockvless" "/opt/etc/unblock/trojan.txt:unblocktroj"; do
     file=$(echo "$entry" | cut -d: -f1)
     setname=$(echo "$entry" | cut -d: -f2)
     
@@ -66,6 +52,21 @@ for entry in "${files[@]}"; do
     # Run in background
     generate_config "$file" "$setname" "$temp_config" &
     i=$((i + 1))
+done
+
+# Add and process VPN files
+for vpn_file in /opt/etc/unblock/vpn-*.txt; do
+    if [ -f "$vpn_file" ]; then
+        vpn_name=$(basename "$vpn_file" .txt)
+        setname="unblock$vpn_name"
+        
+        temp_config="$temp_dir/config_$i.txt"
+        > "$temp_config"
+        
+        # Run in background
+        generate_config "$vpn_file" "$setname" "$temp_config" &
+        i=$((i + 1))
+    fi
 done
 
 # Wait for all background jobs
