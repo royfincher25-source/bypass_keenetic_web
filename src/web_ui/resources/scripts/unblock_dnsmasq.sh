@@ -1,110 +1,83 @@
 #!/bin/sh
-# unblock_dnsmasq.sh - Генерация правил для dnsmasq
-# Упрощённая версия для стабильной работы
+# unblock_dnsmasq.sh - Optimized version with parallel generation
 
 mkdir -p /opt/var/log
 LOGFILE="/opt/var/log/unblock_dnsmasq.log"
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOGFILE"
 
+# Clear dnsmasq config
 cat /dev/null > /opt/etc/unblock.dnsmasq
 
-# Проверка доступности DNS перед генерацией конфига
-MAX_RETRIES=30
-RETRY_INTERVAL=2
-retry=0
-while [ $retry -lt $MAX_RETRIES ]; do
-  if nslookup google.com 8.8.8.8 >/dev/null 2>&1; then
-    echo "DNS ready after $((retry * RETRY_INTERVAL))s" >> "$LOGFILE"
-    break
-  fi
-  retry=$((retry + 1))
-  echo "Waiting for DNS... ($retry/$MAX_RETRIES)" >> "$LOGFILE"
-  sleep $RETRY_INTERVAL
+# Function to generate config for a single file
+generate_config() {
+    local file="$1"
+    local setname="$2"
+    local temp_config="$3"
+    
+    if [ ! -f "$file" ]; then
+        echo "Warning: $file not found" >> "$LOGFILE"
+        return
+    fi
+    
+    # Process file, skipping comments and empty lines
+    while read -r line || [ -n "$line" ]; do
+        [ -z "$line" ] && continue
+        [ "${line#?}" = "#" ] && continue
+        
+        # Skip IP addresses (only process domains)
+        if echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+            continue
+        fi
+        
+        # Handle wildcard domains (keep as is, dnsmasq ignores leading dots)
+        echo "ipset=/$line/$setname" >> "$temp_config"
+        echo "server=/$line/127.0.0.1#40500" >> "$temp_config"
+    done < "$file"
+}
+
+# Define files to process
+files=(
+    "/opt/etc/unblock/shadowsocks.txt:unblocksh"
+    "/opt/etc/unblock/tor.txt:unblocktor"
+    "/opt/etc/unblock/vless.txt:unblockvless"
+    "/opt/etc/unblock/trojan.txt:unblocktroj"
+)
+
+# Add VPN files
+for vpn_file in /opt/etc/unblock/vpn-*.txt; do
+    if [ -f "$vpn_file" ]; then
+        vpn_name=$(basename "$vpn_file" .txt)
+        files+=("$vpn_file:unblock$vpn_name")
+    fi
 done
 
-if [ $retry -eq $MAX_RETRIES ]; then
-  echo "ERROR: DNS not available after $((MAX_RETRIES * RETRY_INTERVAL))s" >> "$LOGFILE"
-fi
+# Process files in parallel
+temp_dir="/tmp/dnsmasq_config_$$"
+mkdir -p "$temp_dir"
 
-# Только для shadowsocks.txt
-if [ ! -f "/opt/etc/unblock/shadowsocks.txt" ]; then
-    echo "Warning: /opt/etc/unblock/shadowsocks.txt not found, skipping" >> "$LOGFILE"
-else
-while read -r line || [ -n "$line" ]; do
-  [ -z "$line" ] && continue
-  [ "${line#?}" = "#" ] && continue
-  echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && continue
+i=0
+for entry in "${files[@]}"; do
+    file=$(echo "$entry" | cut -d: -f1)
+    setname=$(echo "$entry" | cut -d: -f2)
+    
+    temp_config="$temp_dir/config_$i.txt"
+    > "$temp_config"
+    
+    # Run in background
+    generate_config "$file" "$setname" "$temp_config" &
+    i=$((i + 1))
+done
 
-  # Обработка wildcard доменов (*.domain.com)
-  if echo "$line" | grep -q '\*'; then
-    # Заменяем "*." на "*" для wildcard доменов
-    # *.googlevideo.com → *.googlevideo.com (оставляем как есть для ipset)
-    # *.googlevideo.com → .googlevideo.com (для server)
-    echo "ipset=/$line/unblocksh" >> /opt/etc/unblock.dnsmasq
-    echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-  else
-    echo "ipset=/$line/unblocksh" >> /opt/etc/unblock.dnsmasq
-    echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-  fi
-done < /opt/etc/unblock/shadowsocks.txt
-fi
+# Wait for all background jobs
+wait
 
-# Tor списки
-if [ ! -f "/opt/etc/unblock/tor.txt" ]; then
-    echo "Warning: /opt/etc/unblock/tor.txt not found, skipping" >> "$LOGFILE"
-else
-while read -r line || [ -n "$line" ]; do
-  [ -z "$line" ] && continue
-  [ "${line#?}" = "#" ] && continue
-  echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && continue
+# Combine all configs
+cat "$temp_dir"/config_*.txt >> /opt/etc/unblock.dnsmasq
 
-  echo "ipset=/$line/unblocktor" >> /opt/etc/unblock.dnsmasq
-  echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-done < /opt/etc/unblock/tor.txt
-fi
+# Cleanup
+rm -rf "$temp_dir"
 
-# VLESS списки
-if [ ! -f "/opt/etc/unblock/vless.txt" ]; then
-    echo "Warning: /opt/etc/unblock/vless.txt not found, skipping" >> "$LOGFILE"
-else
-while read -r line || [ -n "$line" ]; do
-  [ -z "$line" ] && continue
-  [ "${line#?}" = "#" ] && continue
-  echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && continue
+# Restart dnsmasq
+/opt/etc/init.d/S56dnsmasq restart >> "$LOGFILE" 2>&1
 
-  echo "ipset=/$line/unblockvless" >> /opt/etc/unblock.dnsmasq
-  echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-done < /opt/etc/unblock/vless.txt
-fi
-
-# Trojan списки
-if [ ! -f "/opt/etc/unblock/trojan.txt" ]; then
-    echo "Warning: /opt/etc/unblock/trojan.txt not found, skipping" >> "$LOGFILE"
-else
-while read -r line || [ -n "$line" ]; do
-  [ -z "$line" ] && continue
-  [ "${line#?}" = "#" ] && continue
-  echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && continue
-
-  echo "ipset=/$line/unblocktroj" >> /opt/etc/unblock.dnsmasq
-  echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-done < /opt/etc/unblock/trojan.txt
-fi
-
-# VPN списки
-if ls -d /opt/etc/unblock/vpn-*.txt >/dev/null 2>&1; then
-  for vpn_file_names in /opt/etc/unblock/vpn-*; do
-    vpn_file_name=$(echo "$vpn_file_names" | awk -F '/' '{print $5}' | sed 's/.txt//')
-    unblockvpn=$(echo unblock"$vpn_file_name")
-    cat "$vpn_file_names" | while read -r line || [ -n "$line" ]; do
-      [ -z "$line" ] && continue
-      [ "${line#?}" = "#" ] && continue
-      echo "$line" | grep -Eq '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && continue
-      echo "ipset=/$line/$unblockvpn" >> /opt/etc/unblock.dnsmasq
-      echo "server=/$line/127.0.0.1#40500" >> /opt/etc/unblock.dnsmasq
-    done
-  done
-fi
-
-# Перезапуск dnsmasq
-/opt/etc/init.d/S56dnsmasq restart
+echo "✅ Dnsmasq config generated" | tee -a "$LOGFILE"
