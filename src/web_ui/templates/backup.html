@@ -78,7 +78,7 @@
                 <tbody>
                     {% for backup in backups %}
                     <tr>
-                        <td>
+                        <td class="alert-warning">
                             <code>{{ backup.date }}{% if backup.time %} {{ backup.time }}{% endif %}</code>
                         </td>
                         <td>{{ backup.name }}</td>
