@@ -10,6 +10,7 @@ from markupsafe import escape
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import sys
+import time
 import logging
 import json
 import subprocess
@@ -1367,19 +1368,45 @@ def service_updates_run():
 
             progress.update_progress('Перезапуск S99web_ui', file='S99web_ui', progress=current_step, total=total_steps)
 
-            # Restart web UI
+            # Restart web UI with increased timeout and status check
             if os.path.exists('/opt/etc/init.d/S99web_ui'):
                 try:
+                    # First try restart
                     result = subprocess.run(['/opt/etc/init.d/S99web_ui', 'restart'],
-                                          timeout=30, capture_output=True, text=True)
+                                          timeout=60, capture_output=True, text=True)
                     if result.returncode != 0:
                         logger.warning(f"S99web_ui restart failed: {result.stderr}")
+                        # If restart failed, try start directly
+                        logger.info("Trying to start S99web_ui directly...")
+                        subprocess.run(['/opt/etc/init.d/S99web_ui', 'start'],
+                                     timeout=30, capture_output=True, text=True)
                     else:
                         logger.info("Restarted S99web_ui")
+                    
+                    # Wait for web UI to start
+                    logger.info("Waiting 3 seconds for web UI to start...")
+                    time.sleep(3)
+                    
+                    # Verify web UI is running
+                    check_result = subprocess.run(['/opt/etc/init.d/S99web_ui', 'status'],
+                                                timeout=10, capture_output=True, text=True)
+                    if check_result.returncode != 0:
+                        logger.warning("S99web_ui status check failed - not running, starting...")
+                        subprocess.run(['/opt/etc/init.d/S99web_ui', 'start'],
+                                     timeout=30, capture_output=True, text=True)
+                        logger.info("S99web_ui started")
+                    else:
+                        logger.info("S99web_ui is running")
+                        
                 except subprocess.TimeoutExpired:
-                    logger.warning("S99web_ui restart timeout")
+                    logger.warning("S99web_ui restart timeout - trying start...")
+                    subprocess.run(['/opt/etc/init.d/S99web_ui', 'start'],
+                                 timeout=30, capture_output=True, text=True)
                 except Exception as e:
                     logger.warning(f"S99web_ui restart error: {e}")
+                    # Try start as fallback
+                    subprocess.run(['/opt/etc/init.d/S99web_ui', 'start'],
+                                 timeout=30, capture_output=True, text=True)
             current_step += 1
                 
         except subprocess.TimeoutExpired:
