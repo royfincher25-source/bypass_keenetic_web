@@ -138,8 +138,10 @@ class DNSMonitor:
     def stop(self) -> None:
         """Stop background monitoring"""
         self._running = False
-        if self._thread:
+        if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
+            if self._thread.is_alive():
+                logger.error("DNSMonitor thread did not stop gracefully")
         logger.info("DNSMonitor stopped")
 
     def is_running(self) -> bool:

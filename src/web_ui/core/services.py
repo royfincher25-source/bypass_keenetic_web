@@ -116,12 +116,12 @@ def vless_config(key: str) -> Dict[str, Any]:
     
     Args:
         key: VLESS key string
-    
+
     Returns:
         Dict with full configuration for Xray/Singbox
     """
-    logger.info(f"vless_config: вызов с ключом {key[:20]}...")
-    
+    logger.debug(f"vless_config: parsing key")
+
     parsed = parse_vless_key(key)
     
     # Build Xray config
@@ -213,8 +213,8 @@ def vless_config(key: str) -> Dict[str, Any]:
             'rules': [],
         },
     }
-    
-    logger.info(f"vless_config: конфигурация сгенерирована")
+
+    logger.debug("vless_config: generated")
     return config
 
 
@@ -392,10 +392,9 @@ def shadowsocks_config(key: str) -> Dict[str, Any]:
     Returns:
         Dict with full configuration for shadowsocks-libev
     """
-    logger.info(f"shadowsocks_config: вызов с ключом {key[:20]}...")
+    logger.debug("shadowsocks_config: parsing key")
 
     parsed = parse_shadowsocks_key(key)
-    logger.info(f"shadowsocks_config: parse_shadowsocks_key вернул результат")
 
     config = {
         'server': [parsed['server']],
@@ -403,14 +402,13 @@ def shadowsocks_config(key: str) -> Dict[str, Any]:
         'server_port': parsed['port'],
         'password': parsed['password'],
         'timeout': 86400,
-        'method': parsed['method'],
         'local_address': '::',
         'local_port': 1082,
         'fast_open': False,
         'ipv6_first': True,
     }
 
-    logger.info(f"shadowsocks_config: конфигурация сгенерирована")
+    logger.debug("shadowsocks_config: generated")
     return config
 
 
@@ -496,17 +494,17 @@ def parse_trojan_key(key: str) -> Dict[str, Any]:
 def trojan_config(key: str) -> Dict[str, Any]:
     """
     Generate Trojan configuration from key.
-    
+
     Args:
         key: Trojan key string
-    
+
     Returns:
         Dict with full configuration
     """
-    logger.info(f"trojan_config: вызов с ключом {key[:20]}...")
-    
+    logger.debug("trojan_config: parsing key")
+
     parsed = parse_trojan_key(key)
-    
+
     config = {
         'run_type': 'client',
         'local_addr': '127.0.0.1',
@@ -535,8 +533,8 @@ def trojan_config(key: str) -> Dict[str, Any]:
             'fast_open_qlen': 20,
         },
     }
-    
-    logger.info(f"trojan_config: конфигурация сгенерирована")
+
+    logger.debug("trojan_config: generated")
     return config
 
 
@@ -627,17 +625,17 @@ def parse_hysteria2_key(key: str) -> Dict[str, Any]:
 def hysteria2_config(key: str) -> Dict[str, Any]:
     """
     Generate Hysteria 2 configuration from key.
-    
+
     Args:
         key: Hysteria 2 key string
-    
+
     Returns:
         Dict with full configuration for hysteria server
     """
-    logger.info(f"hysteria2_config: вызов с ключом {key[:20]}...")
-    
+    logger.debug("hysteria2_config: parsing key")
+
     parsed = parse_hysteria2_key(key)
-    
+
     config = {
         'server': f"{parsed['server']}:{parsed['port']}",
         'auth': {
@@ -650,7 +648,7 @@ def hysteria2_config(key: str) -> Dict[str, Any]:
             'sni': parsed['sni'],
             'alpn': ['h3'],
         },
-        ' bandwidth': None,
+        'bandwidth': None,
         'socks5': {
             'listen': '127.0.0.1:1080',
         },
@@ -658,14 +656,14 @@ def hysteria2_config(key: str) -> Dict[str, Any]:
             'listen': '127.0.0.1:8080',
         },
     }
-    
+
     if parsed['obfs'] and parsed['obfs_password']:
         config['obfs'] = {
             'type': parsed['obfs'],
             'password': parsed['obfs_password'],
         }
-    
-    logger.info(f"hysteria2_config: конфигурация сгенерирована")
+
+    logger.debug("hysteria2_config: generated")
     return config
 
 
@@ -756,8 +754,8 @@ def tor_config(bridges_text: str) -> Dict[str, Any]:
         config['UseBridges'] = 1
         for bridge in bridges:
             config[f'Bridge'] = bridge.replace('bridge ', '')
-    
-    logger.info(f"tor_config: конфигурация сгенерирована ({len(bridges)} мостов)")
+
+    logger.debug(f"tor_config: generated ({len(bridges)} bridges)")
     return config
 
 

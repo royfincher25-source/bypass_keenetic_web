@@ -83,29 +83,41 @@ def get_csrf_token():
     return session['csrf_token']
 
 
+def validate_csrf_token() -> bool:
+    """
+    Validate CSRF token from session and form.
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    token = session.get('csrf_token')
+    form_token = request.form.get('csrf_token')
+    if not token or not form_token or token != form_token:
+        logger.warning("CSRF token validation failed")
+        return False
+    return True
+
+
 def csrf_required(f):
     """Decorator to require CSRF token on POST requests."""
     from functools import wraps
-    
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if request.method == 'POST':
-            token = session.get('csrf_token')
-            form_token = request.form.get('csrf_token')
-            if not token or not form_token or token != form_token:
+            if not validate_csrf_token():
                 flash('Ошибка безопасности: неверный токен', 'danger')
-                logger.warning("CSRF token validation failed")
-                
+
                 # Check if it's an AJAX request (X-Requested-With header or Accept header)
                 is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
                           'application/json' in request.headers.get('Accept', ''))
-                
+
                 if is_ajax or request.is_json:
                     return jsonify({'success': False, 'error': 'CSRF token validation failed'}), 400
-                
+
                 return redirect(url_for('main.index'))
         return f(*args, **kwargs)
-    
+
     return decorated_function
 
 
@@ -144,9 +156,7 @@ def login():
 
     if request.method == 'POST':
         # CSRF check for login
-        token = session.get('csrf_token')
-        form_token = request.form.get('csrf_token')
-        if not token or not form_token or token != form_token:
+        if not validate_csrf_token():
             flash('Ошибка безопасности: неверный токен', 'danger')
             logger.warning("CSRF token validation failed on login")
             return redirect(url_for('main.login'))
@@ -1055,12 +1065,10 @@ def service_backup():
     Requires authentication.
     """
     backups = get_backup_list()
-    
+
     if request.method == 'POST':
         # CSRF check for POST requests
-        token = session.get('csrf_token')
-        form_token = request.form.get('csrf_token')
-        if not token or not form_token or token != form_token:
+        if not validate_csrf_token():
             flash('Ошибка безопасности: неверный токен', 'danger')
             logger.warning("CSRF token validation failed in service_backup")
             return redirect(url_for('main.service_backup'))
