@@ -10,6 +10,7 @@ from markupsafe import escape
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 import sys
+import stat
 import logging
 import json
 import subprocess
@@ -1379,20 +1380,39 @@ def service_updates_run():
         if error_count == 0:
             progress.complete()
             flash(f'✅ Обновление завершено! Обновлено файлов: {updated_count}', 'success')
-            
+
             # Перезапуск S99web_ui ПОСЛЕ отправки ответа (в фоне)
             # чтобы не прерывать AJAX-запрос
             try:
-                # Запускаем в фоне через nohup
-                subprocess.Popen(
-                    'nohup sh -c "sleep 5 && /opt/etc/init.d/S99web_ui restart" > /dev/null 2>&1 &',
-                    shell=True,
-                    start_new_session=True
-                )
-                logger.info("S99web_ui restart scheduled in background")
+                # Создаём скрипт для отложенного перезапуска
+                restart_script = '/tmp/restart_webui.sh'
+                with open(restart_script, 'w') as f:
+                    f.write('#!/bin/sh\n')
+                    f.write('sleep 5\n')
+                    f.write('/opt/etc/init.d/S99web_ui restart\n')
+                    f.write('rm -f /tmp/restart_webui.sh\n')
+                
+                import stat
+                os.chmod(restart_script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                
+                # Запускаем скрипт в фоне
+                subprocess.Popen([restart_script], 
+                               stdout=subprocess.DEVNULL, 
+                               stderr=subprocess.DEVNULL,
+                               start_new_session=True)
+                logger.info("S99web_ui restart scheduled via /tmp/restart_webui.sh")
             except Exception as e:
                 logger.warning(f"Failed to schedule S99web_ui restart: {e}")
-            
+                # Fallback: пробуем перезапустить напрямую (может прервать AJAX)
+                try:
+                    subprocess.Popen(['/opt/etc/init.d/S99web_ui', 'restart'],
+                                   stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL,
+                                   start_new_session=True)
+                    logger.info("S99web_ui restart triggered directly (fallback)")
+                except Exception as e2:
+                    logger.error(f"Fallback restart also failed: {e2}")
+
             return jsonify({
                 'success': True,
                 'message': f'✅ Обновление завершено! Обновлено файлов: {updated_count}',
