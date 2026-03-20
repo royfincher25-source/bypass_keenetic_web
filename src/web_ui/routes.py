@@ -1219,6 +1219,7 @@ def service_updates_run():
             'web_ui/core/app_config.py': '/opt/etc/web_ui/core/app_config.py',
             'web_ui/core/web_config.py': '/opt/etc/web_ui/core/web_config.py',
             'web_ui/core/list_catalog.py': '/opt/etc/web_ui/core/list_catalog.py',
+            'web_ui/core/update_progress.py': '/opt/etc/web_ui/core/update_progress.py',
             
             # Init scripts
             'web_ui/resources/scripts/S99unblock': '/opt/etc/init.d/S99unblock',
