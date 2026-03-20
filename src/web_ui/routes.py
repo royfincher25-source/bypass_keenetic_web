@@ -1243,6 +1243,9 @@ def service_updates_run():
             'web_ui/resources/scripts/unblock_ipset.sh': '/opt/bin/unblock_ipset.sh',
             'web_ui/resources/scripts/unblock_dnsmasq.sh': '/opt/bin/unblock_dnsmasq.sh',
             'web_ui/resources/scripts/unblock_update.sh': '/opt/bin/unblock_update.sh',
+
+            # Redirect scripts
+            'web_ui/resources/scripts/100-redirect.sh': '/opt/etc/ndm/netfilter.d/100-redirect.sh',
             
             # Config files
             'web_ui/resources/config/dnsmasq.conf': '/opt/etc/dnsmasq.conf',
