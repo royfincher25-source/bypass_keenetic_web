@@ -144,6 +144,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(progressInterval);
                 if (data.success) {
                     showCompletion(data.message);
+                    
+                    // Автоматическая перезагрузка если указано в ответе
+                    if (data.reload) {
+                        const delay = data.reload_delay || 3000;
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, delay);
+                    }
                 } else {
                     showError(data.error || 'Update failed');
                 }
@@ -213,6 +221,11 @@ function updateProgressBar(data) {
 
     if (data.status === 'error') {
         showError(data.error);
+    }
+    
+    // Автоматическая перезагрузка при завершении
+    if (data.status === 'complete' && percentage >= 100) {
+        showCompletion(data.message);
     }
 }
 

@@ -1394,14 +1394,17 @@ def service_updates_run():
             flash(f'✅ Обновление завершено! Обновлено файлов: {updated_count}', 'success')
             return jsonify({
                 'success': True,
-                'message': f'✅ Обновление завершено! Обновлено файлов: {updated_count}'
+                'message': f'✅ Обновление завершено! Обновлено файлов: {updated_count}',
+                'reload': True,
+                'reload_delay': 3000  # 3 секунды
             })
         else:
             progress.set_error(f'Обновлено: {updated_count}, ошибок: {error_count}')
             flash(f'⚠️ Обновлено: {updated_count}, ошибок: {error_count}', 'warning')
             return jsonify({
                 'success': False,
-                'error': f'Обновлено: {updated_count}, ошибок: {error_count}'
+                'error': f'Обновлено: {updated_count}, ошибок: {error_count}',
+                'reload': False
             })
             
     except Exception as e:
