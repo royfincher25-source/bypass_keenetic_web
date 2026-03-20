@@ -109,7 +109,19 @@ document.getElementById('update-form').addEventListener('submit', function(e) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            // Handle different HTTP errors
+            if (response.status === 401) {
+                throw new Error('Требуется аутентификация. Пожалуйста, войдите снова.');
+            } else if (response.status === 400) {
+                throw new Error('Ошибка запроса. Проверьте данные и попробуйте снова.');
+            } else {
+                throw new Error(`Ошибка сервера: ${response.status}`);
+            }
+        }
+        return response.json();
+    })
     .then(data => {
         clearInterval(progressInterval);
         if (data.success) {
@@ -120,18 +132,41 @@ document.getElementById('update-form').addEventListener('submit', function(e) {
     })
     .catch(error => {
         clearInterval(progressInterval);
-        showError('Network error: ' + error.message);
+        showError('Ошибка: ' + error.message);
+        
+        // Redirect to login if authentication error
+        if (error.message.includes('аутентификация') || error.message.includes('Authentication')) {
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        }
     });
 });
 
 function updateProgress() {
     fetch('/api/update/progress')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Don't throw error for 401/403, just stop polling
+                if (response.status === 401 || response.status === 403) {
+                    console.warn('Authentication required, stopping progress polling');
+                    return null; // Return null to indicate stopped polling
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            updateProgressBar(data);
+            if (data !== null) {
+                updateProgressBar(data);
+            }
         })
         .catch(error => {
             console.error('Failed to get progress:', error);
+            // Stop polling on error
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
         });
 }
 

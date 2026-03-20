@@ -62,6 +62,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('authenticated'):
+            # Check if it's an AJAX request
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'error': 'Authentication required'}), 401
             return redirect(url_for('main.login'))
         return f(*args, **kwargs)
     
@@ -88,6 +91,11 @@ def csrf_required(f):
             if not token or not form_token or token != form_token:
                 flash('Ошибка безопасности: неверный токен', 'danger')
                 logger.warning("CSRF token validation failed")
+                
+                # Check if it's an AJAX request
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'error': 'CSRF token validation failed'}), 400
+                
                 return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     
