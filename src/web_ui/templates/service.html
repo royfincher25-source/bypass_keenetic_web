@@ -77,15 +77,17 @@ async function updateStats() {
         else if (memPercent > 60) memBar.className = 'progress-bar bg-warning';
         else memBar.className = 'progress-bar bg-success';
         document.getElementById('mem-text').textContent = 
-            `${data.used_mb}MB / ${data.total_mb}MB (свободно: ${data.free_mb}MB)`;
+            `${data.used_mb}MB / ${data.total_mb}MB (свободно: ${data.available_mb || data.free_mb}MB)`;
         
         // Cache
         const cacheEntries = data.cache_entries || 0;
         const cacheMax = data.cache_max || 30;
         const cachePercent = cacheMax > 0 ? (cacheEntries / cacheMax) * 100 : 0;
         const cacheBar = document.getElementById('cache-bar');
-        cacheBar.style.width = cachePercent + '%';
-        cacheBar.textContent = `${cacheEntries}/${cacheMax}`;
+        if (cacheBar) {
+            cacheBar.style.width = cachePercent + '%';
+            cacheBar.textContent = `${cacheEntries}/${cacheMax}`;
+        }
         
         // Update cache text with more info
         let cacheText = `LRU entries: ${cacheEntries}/${cacheMax}`;
@@ -94,7 +96,10 @@ async function updateStats() {
         } else if (cacheEntries >= cacheMax) {
             cacheText += ' (заполнен)';
         }
-        document.getElementById('cache-text').textContent = cacheText;
+        const cacheTextEl = document.getElementById('cache-text');
+        if (cacheTextEl) {
+            cacheTextEl.textContent = cacheText;
+        }
         
         // CPU
         const cpuPercent = data.cpu_percent || 0;
@@ -182,7 +187,8 @@ function showToast(message, type) {
 
 document.getElementById('auto-optimize-toggle').addEventListener('change', toggleAutoOptimize);
 updateStats();
-setInterval(updateStats, 5000);
+// Update stats every 10 seconds (reduced from 5 for KN-1212 performance)
+setInterval(updateStats, 10000);
 </script>
 
 <div class="row g-4">

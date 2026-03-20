@@ -718,8 +718,23 @@ def get_memory_stats() -> dict:
         free = mem.get('MemFree', 0) / 1024
         buffers = mem.get('Buffers', 0) / 1024
         cached = mem.get('Cached', 0) / 1024
+        available = mem.get('MemAvailable', 0) / 1024  # MB (if available in kernel)
         
-        used = total - free - buffers - cached
+        # Calculate used memory
+        # If MemAvailable is provided (kernel 3.14+), use it
+        if available > 0:
+            used = total - available
+        else:
+            # Fallback: estimate used memory
+            # This is less accurate but works on older kernels
+            used = total - free - buffers - cached
+        
+        # For display purposes, show available memory
+        if available > 0:
+            display_available = available
+        else:
+            display_available = free + buffers + cached
+        
         percent = (used / total * 100) if total > 0 else 0
         
         try:
@@ -734,6 +749,7 @@ def get_memory_stats() -> dict:
             'total_mb': round(total, 1),
             'used_mb': round(used, 1),
             'free_mb': round(free, 1),
+            'available_mb': round(display_available, 1),
             'cached_mb': round(cached, 1),
             'percent': round(percent, 1),
             'cache_entries': cache_entries,
@@ -749,6 +765,7 @@ def get_memory_stats() -> dict:
             'total_mb': 0,
             'used_mb': 0,
             'free_mb': 0,
+            'available_mb': 0,
             'cached_mb': 0,
             'percent': 0,
             'cache_entries': 0,
