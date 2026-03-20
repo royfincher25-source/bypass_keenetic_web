@@ -58,11 +58,16 @@ def parse_vless_key(key: str) -> Dict[str, Any]:
         logger.error(f"VLESS ASCII encode error: {e}")
     
     logger.info(f"VLESS normalized key: {key[:80]}...")
-    
+
     # Parse URL
     url = key[8:]  # Remove 'vless://'
-    parsed = urlparse(url)
     
+    # Fix malformed query strings (e.g., "?&param=value" → "?param=value")
+    if '?&' in url:
+        url = url.replace('?&', '?')
+    
+    parsed = urlparse(url)
+
     # Extract UUID
     uuid = parsed.username
     if not uuid:
