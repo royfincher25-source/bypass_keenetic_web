@@ -60,16 +60,12 @@
         
         {% if backups %}
         <style>
-        /* Нижний отступ таблицы 3.5rem */
-        .backup-table-container {
+        /* Нижний отступ 3.5rem для карточки с таблицей бэкапов */
+        .card.shadow-sm.mb-4:last-child {
             margin-bottom: 3.5rem !important;
         }
-        /* Стандартный отступ для строк таблицы */
-        .backup-table tbody tr {
-            border-bottom: none !important;
-        }
         </style>
-        <div class="table-responsive backup-table-container">
+        <div class="table-responsive">
             <table class="table table-hover table-sm backup-table">
                 <thead>
                     <tr>
