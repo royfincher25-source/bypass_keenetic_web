@@ -107,7 +107,10 @@ document.getElementById('update-form').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     fetch(this.action, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
     .then(response => {
         if (!response.ok) {
@@ -144,7 +147,11 @@ document.getElementById('update-form').addEventListener('submit', function(e) {
 });
 
 function updateProgress() {
-    fetch('/api/update/progress')
+    fetch('/api/update/progress', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 // Don't throw error for 401/403, just stop polling
