@@ -113,7 +113,7 @@ if __name__ == '__main__':
             app,
             host=host,
             port=port,
-            threads=2,  # Оптимизировано для KN-1212 (128MB RAM)
+            threads=4,  # Увеличено с 2 до 4 для KN-1212 (128MB RAM)
             connection_limit=10,  # Лимит подключений для защиты от перегрузки
             cleanup_interval=30,  # Очистка каждые 30 секунд
             channel_timeout=30,  # Таймаут канала
