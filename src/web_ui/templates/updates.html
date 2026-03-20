@@ -100,6 +100,9 @@ document.getElementById('update-form').addEventListener('submit', function(e) {
     // Start progress polling (increased interval for KN-1212)
     progressInterval = setInterval(updateProgress, 3000);
     
+    // Remove animation from progress bar immediately
+    document.getElementById('progress-bar').classList.remove('progress-bar-animated');
+    
     // Submit form via AJAX
     const formData = new FormData(this);
     fetch(this.action, {
@@ -144,8 +147,11 @@ function updateProgressBar(data) {
     
     progressBar.style.width = percentage + '%';
     progressBar.textContent = percentage + '%';
+    
+    // Display message (shows script execution status)
     progressText.textContent = data.message;
     
+    // Display current file name separately for clarity
     if (data.current_file) {
         progressDetails.textContent = 'Файл: ' + data.current_file;
     } else {

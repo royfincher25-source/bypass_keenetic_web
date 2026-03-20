@@ -69,6 +69,14 @@ def create_app(config_class=None):
                 session['csrf_token'] = secrets.token_hex(32)
             return session['csrf_token']
         return dict(csrf_token=generate_csrf_token)
+    
+    # Добавить версию в контекст шаблонов
+    @app.context_processor
+    def inject_version():
+        """Inject version into all templates"""
+        from core.services import get_local_version
+        version = get_local_version()
+        return dict(app_version=version)
 
     # Запуск DNS монитора в фоновом режиме
     from core.dns_monitor import DNSMonitor

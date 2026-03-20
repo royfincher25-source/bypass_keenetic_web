@@ -81,12 +81,20 @@ async function updateStats() {
         
         // Cache
         const cacheEntries = data.cache_entries || 0;
-        const cacheMax = data.cache_max || 1;
-        const cachePercent = (cacheEntries / cacheMax) * 100;
+        const cacheMax = data.cache_max || 30;
+        const cachePercent = cacheMax > 0 ? (cacheEntries / cacheMax) * 100 : 0;
         const cacheBar = document.getElementById('cache-bar');
         cacheBar.style.width = cachePercent + '%';
         cacheBar.textContent = `${cacheEntries}/${cacheMax}`;
-        document.getElementById('cache-text').textContent = 'LRU entries';
+        
+        // Update cache text with more info
+        let cacheText = `LRU entries: ${cacheEntries}/${cacheMax}`;
+        if (cacheEntries === 0) {
+            cacheText += ' (пусто)';
+        } else if (cacheEntries >= cacheMax) {
+            cacheText += ' (заполнен)';
+        }
+        document.getElementById('cache-text').textContent = cacheText;
         
         // CPU
         const cpuPercent = data.cpu_percent || 0;
@@ -225,6 +233,11 @@ setInterval(updateStats, 5000);
                         <i class="bi bi-{{ 'check-circle' if dns_override_enabled else 'x-circle' }}"></i>
                         DNS Override: {{ dns_status }}
                     </span>
+                    {% if dns_override_enabled %}
+                        <small class="text-success ms-2">Активно</small>
+                    {% else %}
+                        <small class="text-muted ms-2">Неактивно</small>
+                    {% endif %}
                 </div>
                 
                 <form method="POST" action="{{ url_for('main.service_dns_override', action='on') }}" class="d-inline">

@@ -838,14 +838,34 @@ def service():
             logger.warning("ndmc command not found, skipping DNS Override check")
             dns_override_enabled = False
         else:
-            # Используем синтаксис Keenetic: show running | include dns-override
-            result = subprocess.run(
+            # Пробуем разные команды для проверки DNS Override
+            commands_to_try = [
                 ['ndmc', '-c', 'show running | include dns-override'],
-                capture_output=True, text=True, timeout=5
-            )
-            # Проверяем, содержит ли вывод dns-override
-            dns_override_enabled = (result.returncode == 0 and 'dns-override' in result.stdout.lower())
-            logger.debug(f"DNS Override status check: returncode={result.returncode}, stdout='{result.stdout.strip()}', enabled={dns_override_enabled}")
+                ['ndmc', '-c', 'show dns-override'],
+                ['ndmc', '-c', 'show dns override'],
+            ]
+            
+            for cmd in commands_to_try:
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        output = result.stdout.lower()
+                        # Проверяем различные варианты
+                        if 'dns-override' in output or 'dns override' in output:
+                            dns_override_enabled = True
+                            logger.debug(f"DNS Override found with command: {' '.join(cmd)}")
+                            break
+                        # Также проверяем, если в выводе есть enabled/disabled
+                        if 'enabled' in output and 'disabled' not in output:
+                            dns_override_enabled = True
+                            break
+                except subprocess.TimeoutExpired:
+                    continue
+                except Exception as e:
+                    logger.debug(f"Command {' '.join(cmd)} failed: {e}")
+                    continue
+            
+            logger.debug(f"DNS Override status: {dns_override_enabled}")
     except Exception as e:
         logger.error(f"Error checking DNS Override status: {e}")
         dns_override_enabled = False

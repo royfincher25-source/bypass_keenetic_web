@@ -1028,6 +1028,15 @@ def get_local_version():
         with open(version_file, 'r', encoding='utf-8') as f:
             return f.read().strip()
     except FileNotFoundError:
+        # Для разработки: проверяем локальный файл VERSION в корне проекта
+        import os
+        local_version_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'VERSION')
+        if os.path.exists(local_version_file):
+            try:
+                with open(local_version_file, 'r', encoding='utf-8') as f:
+                    return f.read().strip()
+            except:
+                pass
         return 'N/A'
 
 
