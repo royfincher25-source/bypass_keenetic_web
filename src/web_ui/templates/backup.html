@@ -59,8 +59,14 @@
         <h5 class="card-title"><i class="bi bi-folder2-open"></i> Существующие бэкапы</h5>
         
         {% if backups %}
+        <style>
+        /* Увеличенный отступ снизу для строк таблицы бэкапов */
+        .backup-table tbody tr {
+            border-bottom: 3.5rem solid transparent !important;
+        }
+        </style>
         <div class="table-responsive">
-            <table class="table table-hover table-sm">
+            <table class="table table-hover table-sm backup-table">
                 <thead>
                     <tr>
                         <th>Дата</th>
